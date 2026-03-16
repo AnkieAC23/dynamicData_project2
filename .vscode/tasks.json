@@ -1,0 +1,48 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Run local form proxy",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				"server.js"
+			],
+			"isBackground": true,
+			"group": "build"
+		},
+		{
+			"label": "Run local form proxy debug",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-Command",
+				"$env:PORT=3001; node server.js"
+			],
+			"isBackground": true,
+			"group": "build"
+		},
+		{
+			"label": "Run local form proxy mapped",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-Command",
+				"$env:PORT=3002; node server.js"
+			],
+			"isBackground": true,
+			"group": "build"
+		},
+		{
+			"label": "Run local form proxy final",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-Command",
+				"$env:PORT=3003; node server.js"
+			],
+			"isBackground": true,
+			"group": "build"
+		}
+	]
+}
