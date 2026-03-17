@@ -7,13 +7,93 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <main>
-      <h1>Live Form Responses</h1>
-      <p>Data below refreshes automatically from your Google Apps Script endpoint.</p>
+    <div id="loadingOverlay" class="loading-overlay" aria-live="polite">
+      <div class="loading-card">
+        <p id="loadingLabel" class="loading-title">Your connections await</p>
+        <div class="loading-bar" aria-hidden="true">
+          <div id="loadingBarFill" class="loading-bar-fill"></div>
+        </div>
+      </div>
+    </div>
 
-      <p id="statusText" class="status">Waiting to load data...</p>
+    <header class="hero-copy" aria-label="Project heading">
+      <h1>
+        <span class="title-main">Connections</span><br>
+        <span class="title-sub">(feat. Music)</span>
+      </h1>
+      <p>
+        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor
+        incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam.
+      </p>
+    </header>
+
+    <main>
       <section id="responses" aria-live="polite"></section>
     </main>
+
+    <aside class="symbol-legend" aria-label="Symbol legend">
+      <div id="symbolPanel" class="legend-panel" aria-hidden="true">
+        <button id="symbolToggle" class="legend-toggle" type="button" aria-expanded="false" aria-controls="symbolPanel">
+          <span id="symbolToggleSymbol" class="legend-symbol" aria-hidden="true">&lt;</span>
+          <span>Symbol Guide</span>
+        </button>
+        <div class="legend-content symbol-grid">
+          <div class="symbol-item">
+            <img src="images/woman.png" class="symbol-item-img" alt="" />
+            <span class="symbol-item-label">Woman</span>
+          </div>
+          <div class="symbol-item">
+            <img src="images/men.png" class="symbol-item-img" alt="" />
+            <span class="symbol-item-label">Man</span>
+          </div>
+          <div class="symbol-item">
+            <img src="images/nonbin.png" class="symbol-item-img" alt="" />
+            <span class="symbol-item-label">Non-binary</span>
+          </div>
+          <div class="symbol-item">
+            <img src="images/other.png" class="symbol-item-img" alt="" />
+            <span class="symbol-item-label">Other</span>
+          </div>
+          <div class="symbol-item">
+            <img src="images/prefernot.png" class="symbol-item-img" alt="" />
+            <span class="symbol-item-label">Prefer not to say</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <aside class="genre-legend" aria-label="Genre legend">
+      <div id="legendPanel" class="legend-panel" aria-hidden="true">
+        <button id="legendToggle" class="legend-toggle" type="button" aria-expanded="false" aria-controls="legendPanel">
+          <span id="legendToggleSymbol" class="legend-symbol" aria-hidden="true">&lt;</span>
+          <span>Colour Guide</span>
+        </button>
+        <div class="legend-content">
+          <div class="legend-bar" style="--bar-color: #ff80a1">Pop</div>
+          <div class="legend-bar" style="--bar-color: #f0cfc7">K-pop</div>
+          <div class="legend-bar" style="--bar-color: #ed321f">Rock</div>
+          <div class="legend-bar" style="--bar-color: #1db695">Hip-hop / Rap</div>
+          <div class="legend-bar" style="--bar-color: #967cc7">R&amp;B / Soul</div>
+          <div class="legend-bar" style="--bar-color: #05bed6">Electronic / Dance</div>
+          <div class="legend-bar" style="--bar-color: #e69843">Country</div>
+          <div class="legend-bar" style="--bar-color: #8e663f">Folk / Singer-Songwriter / Indie</div>
+          <div class="legend-bar" style="--bar-color: #6698cc">Jazz / Blues</div>
+          <div class="legend-bar" style="--bar-color: #e0f9fd">Classical</div>
+          <div class="legend-bar" style="--bar-color: #3bcf57">Reggae</div>
+          <div class="legend-bar" style="--bar-color: #fee58b">Latin</div>
+          <div class="legend-bar" style="--bar-color: #c0c6d0">Metal</div>
+          <div class="legend-bar" style="--bar-color: #fcf9f0">Other</div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="zoom-controls" aria-label="Zoom controls">
+      <label class="zoom-slider-wrap" for="zoomRange">
+        <span id="zoomValue" class="zoom-value">100%</span>
+        <input id="zoomRange" class="zoom-range" type="range" min="100" max="500" step="1" value="100" aria-label="Zoom level" />
+      </label>
+      <button id="zoomResetBtn" class="zoom-btn zoom-reset" type="button" aria-label="Reset zoom">&#x21bb;</button>
+    </div>
 
     <script src="script.js"></script>
   </body>

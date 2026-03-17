@@ -43,6 +43,147 @@
 			],
 			"isBackground": true,
 			"group": "build"
+		},
+		{
+			"label": "Git status check",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"status",
+				"-sb"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Git remotes",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"remote",
+				"-v"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Git branches",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"branch",
+				"-vv"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Git fetch prune",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"fetch",
+				"--all",
+				"--prune"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Git ahead behind",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"status",
+				"-sb"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Git rebase with autostash",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"pull",
+				"--rebase",
+				"--autostash",
+				"origin",
+				"main"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Git push main",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"push",
+				"origin",
+				"main"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Git post-push status",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"status",
+				"-sb"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Check port 3000 listener",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-Command",
+				"Get-NetTCPConnection -LocalPort 3000 -State Listen | Select-Object -First 5 LocalAddress,LocalPort,OwningProcess | Format-Table | Out-String"
+			]
+		},
+		{
+			"label": "Check api responses endpoint",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-Command",
+				"try { (Invoke-WebRequest -Uri 'http://localhost:3000/api/responses' -UseBasicParsing -TimeoutSec 8).Content } catch { $_.Exception.Message }"
+			]
+		},
+		{
+			"label": "Check local proxy ports",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-Command",
+				"$ports = 3000,3001,3002,3003; foreach ($p in $ports) { $conn = Get-NetTCPConnection -LocalPort $p -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1 OwningProcess; if ($conn) { Write-Output (\"PORT {0}: LISTENING (PID {1})\" -f $p,$conn.OwningProcess) } else { Write-Output (\"PORT {0}: not listening\" -f $p) } }"
+			]
+		},
+		{
+			"label": "Start API server",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				"server.js"
+			],
+			"isBackground": true,
+			"group": "build"
+		},
+		{
+			"label": "Verify api after start",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-Command",
+				"$r = Invoke-WebRequest -Uri 'http://localhost:3000/api/responses' -UseBasicParsing -TimeoutSec 8; $json = $r.Content | ConvertFrom-Json; \"status=$($r.StatusCode) count=$($json.count)\""
+			]
+		},
+		{
+			"label": "Node verify api endpoint",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				"-e",
+				"fetch('http://localhost:3000/api/responses').then(r=>r.json()).then(j=>console.log('ok count='+j.count)).catch(e=>{console.error('err '+e.message);process.exit(1);})"
+			],
+			"isBackground": false
 		}
 	]
 }
