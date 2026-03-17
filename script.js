@@ -82,6 +82,8 @@ let loadingStartMs = 0;
 let expectedLoadMs = 9000;
 let initialFetchInFlight = false;
 let mockRowsCache = null;
+let pointTooltipEl = null;
+let interactionsAbortController = null;
 
 function setStatus(message) {
   if (statusText) {
@@ -309,6 +311,149 @@ function createScribbleConnectionPath(from, to, seedText) {
   const c4y = from.y + dy * 0.82 - ny * bendD;
 
   return `M ${from.x} ${from.y} C ${c1x.toFixed(2)} ${c1y.toFixed(2)}, ${c2x.toFixed(2)} ${c2y.toFixed(2)}, ${midX.toFixed(2)} ${midY.toFixed(2)} C ${c3x.toFixed(2)} ${c3y.toFixed(2)}, ${c4x.toFixed(2)} ${c4y.toFixed(2)}, ${to.x} ${to.y}`;
+}
+
+function ensurePointTooltip() {
+  if (pointTooltipEl) {
+    return pointTooltipEl;
+  }
+
+  pointTooltipEl = document.createElement("div");
+  pointTooltipEl.className = "point-tooltip is-hidden";
+  document.body.appendChild(pointTooltipEl);
+  return pointTooltipEl;
+}
+
+function positionPointTooltip(clientX, clientY) {
+  const tooltip = ensurePointTooltip();
+  const pad = 12;
+  const offset = 16;
+  let x = clientX + offset;
+  let y = clientY - offset;
+
+  const rect = tooltip.getBoundingClientRect();
+  if (x + rect.width > window.innerWidth - pad) {
+    x = clientX - rect.width - offset;
+  }
+  if (y + rect.height > window.innerHeight - pad) {
+    y = window.innerHeight - rect.height - pad;
+  }
+  if (y < pad) {
+    y = pad;
+  }
+  if (x < pad) {
+    x = pad;
+  }
+
+  tooltip.style.left = `${Math.round(x)}px`;
+  tooltip.style.top = `${Math.round(y)}px`;
+}
+
+function resolveTooltipImageUrl(rawValue) {
+  const value = String(rawValue || "").trim();
+  if (!value) {
+    return "";
+  }
+
+  const deEntityValue = value.replaceAll("&amp;", "&");
+
+  const quotedUrlMatch = deEntityValue.match(/"(https?:\/\/[^"\s]+)"/i);
+  if (quotedUrlMatch) {
+    return quotedUrlMatch[1];
+  }
+
+  const anyUrlMatch = deEntityValue.match(/https?:\/\/[^\s)"']+/i);
+  if (anyUrlMatch) {
+    return anyUrlMatch[0];
+  }
+
+  if (value.startsWith("//")) {
+    return `https:${value}`;
+  }
+
+  if (/^[a-z0-9.-]+\/[a-z0-9/_-]+$/i.test(value) && !value.startsWith("data:")) {
+    return `https://${value}`;
+  }
+
+  if (value.startsWith("http://") || value.startsWith("https://") || value.startsWith("/")) {
+    return value;
+  }
+
+  if (value.startsWith("[") || value.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed) && parsed.length) {
+        const first = parsed[0];
+        if (typeof first === "string") {
+          return first;
+        }
+        if (first && typeof first.url === "string") {
+          return first.url;
+        }
+      }
+      if (parsed && typeof parsed.url === "string") {
+        return parsed.url;
+      }
+    } catch {
+      return "";
+    }
+  }
+
+  return "";
+}
+
+function pickLooseRowValue(row, predicate) {
+  const entries = Object.entries(row || {});
+  for (let i = 0; i < entries.length; i += 1) {
+    const [key, raw] = entries[i];
+    if (predicate(normalizeKey(key)) && String(raw || "").trim()) {
+      return String(raw).trim();
+    }
+  }
+  return "";
+}
+
+function showPointTooltip(pointData, event) {
+  const tooltip = ensurePointTooltip();
+  const displayName = pointData.displayName || "Anonymous";
+  const artist1Name = pointData.topArtist1SpotifyName || pointData.artist || "Unknown artist";
+  const artist2 = pointData.topArtist2 || "-";
+  const artist3 = pointData.topArtist3 || "-";
+  const ageRange = pointData.ageRange || "-";
+  const region = pointData.region || "-";
+  const imageUrl =
+    resolveTooltipImageUrl(pointData.topArtist1ImageUrl) ||
+    resolveTooltipImageUrl(pointData.fallbackImageUrl);
+
+  tooltip.innerHTML = `
+    <button class="point-tooltip-close" type="button" aria-label="Close">x</button>
+    <div class="point-tooltip-name">${escapeHtml(displayName)}</div>
+    <div class="point-tooltip-image-wrap">
+      ${
+        imageUrl
+          ? `<img class="point-tooltip-image" src="${escapeHtml(imageUrl)}" alt="Top artist image" />`
+          : `<div class="point-tooltip-image point-tooltip-image-empty">No image</div>`
+      }
+    </div>
+    <div class="point-tooltip-artist1">${escapeHtml(artist1Name)}</div>
+    <div class="point-tooltip-artists-row">
+      <div class="point-tooltip-meta"><span>Top Artist #2</span><strong>${escapeHtml(artist2)}</strong></div>
+      <div class="point-tooltip-meta"><span>Top Artist #3</span><strong>${escapeHtml(artist3)}</strong></div>
+    </div>
+    <div class="point-tooltip-artists-row point-tooltip-location-row">
+      <div class="point-tooltip-meta"><span>Age Range</span><strong>${escapeHtml(ageRange)}</strong></div>
+      <div class="point-tooltip-meta"><span>Region</span><strong>${escapeHtml(region)}</strong></div>
+    </div>
+  `;
+  tooltip.classList.remove("is-hidden");
+  positionPointTooltip(event.clientX, event.clientY);
+}
+
+function hidePointTooltip() {
+  if (!pointTooltipEl) {
+    return;
+  }
+  pointTooltipEl.classList.add("is-hidden");
 }
 
 function syncGuideButtonVisibility() {
@@ -583,6 +728,12 @@ function attachPanZoom(svg, contentWidth, contentHeight) {
 }
 
 function attachRevealInteractions() {
+  if (interactionsAbortController) {
+    interactionsAbortController.abort();
+  }
+  interactionsAbortController = new AbortController();
+  const { signal } = interactionsAbortController;
+
   const pointGroups = Array.from(document.querySelectorAll(".point-group"));
 
   if (!pointGroups.length) {
@@ -590,6 +741,9 @@ function attachRevealInteractions() {
   }
 
   const linkGroups = Array.from(document.querySelectorAll(".link-group"));
+  let activeArtistKey = null;
+  let activeGroup = null;
+  let hoveredArtistKey = null;
 
   function setRevealState(artistKey, shouldReveal) {
     pointGroups.forEach((group) => {
@@ -604,20 +758,117 @@ function attachRevealInteractions() {
     });
   }
 
+  function clearActiveSelection() {
+    if (activeArtistKey) {
+      setRevealState(activeArtistKey, false);
+    }
+    activeArtistKey = null;
+    activeGroup = null;
+    hidePointTooltip();
+    if (hoveredArtistKey) {
+      setRevealState(hoveredArtistKey, true);
+    }
+  }
+
+  const tooltip = ensurePointTooltip();
+  tooltip.addEventListener(
+    "click",
+    (event) => {
+      event.stopPropagation();
+      if (event.target.closest(".point-tooltip-close")) {
+        clearActiveSelection();
+      }
+    },
+    { signal }
+  );
+
   pointGroups.forEach((group) => {
     const artistKey = group.dataset.artistKey;
     if (!artistKey) {
       return;
     }
 
-    group.addEventListener("pointerenter", () => {
-      setRevealState(artistKey, true);
-    });
+    const pointData = {
+      displayName: group.dataset.displayName || "",
+      artist: group.dataset.artistName || "",
+      topArtist1SpotifyName: group.dataset.topArtist1SpotifyName || "",
+      topArtist1ImageUrl: group.dataset.topArtist1ImageUrl || "",
+      fallbackImageUrl: group.dataset.avatarSrc || "",
+      topArtist2: group.dataset.topArtist2 || "",
+      topArtist3: group.dataset.topArtist3 || "",
+      ageRange: group.dataset.ageRange || "",
+      region: group.dataset.region || "",
+    };
 
-    group.addEventListener("pointerleave", () => {
-      setRevealState(artistKey, false);
-    });
+    group.addEventListener(
+      "pointerdown",
+      (event) => {
+        event.stopPropagation();
+      },
+      { signal }
+    );
+
+    group.addEventListener(
+      "pointerenter",
+      () => {
+        hoveredArtistKey = artistKey;
+        if (!activeArtistKey) {
+          setRevealState(artistKey, true);
+        }
+      },
+      { signal }
+    );
+
+    group.addEventListener(
+      "pointerleave",
+      () => {
+        if (hoveredArtistKey === artistKey) {
+          hoveredArtistKey = null;
+        }
+        if (!activeArtistKey) {
+          setRevealState(artistKey, false);
+        }
+      },
+      { signal }
+    );
+
+    group.addEventListener(
+      "click",
+      (event) => {
+        event.stopPropagation();
+
+        if (activeGroup === group) {
+          clearActiveSelection();
+          return;
+        }
+
+        clearActiveSelection();
+        activeArtistKey = artistKey;
+        activeGroup = group;
+        setRevealState(artistKey, true);
+        showPointTooltip(pointData, event);
+      },
+      { signal }
+    );
   });
+
+  document.addEventListener(
+    "click",
+    () => {
+      clearActiveSelection();
+    },
+    { signal }
+  );
+
+  document.addEventListener(
+    "keydown",
+    (event) => {
+      if (event.key === "Escape") {
+        clearActiveSelection();
+      }
+    },
+    { signal }
+  );
 }
 
 if (zoomRange) {
@@ -643,9 +894,32 @@ function renderRows(rows) {
 
   const entries = rows
     .map((row) => ({
+      rawTopArtist1ImageUrl: pickLooseRowValue(
+        row,
+        (normalizedKey) =>
+          normalizedKey.includes("topartist1") &&
+          normalizedKey.includes("image") &&
+          normalizedKey.includes("url")
+      ),
+      displayName: String(row?.["Display Name"] ?? row?.displayName ?? "").trim(),
       artist: String(row?.["Top Artist #1"] ?? row?.artist1 ?? "").trim(),
       genre: String(row?.["Most Listened Genre"] ?? row?.genre ?? "Other").trim(),
       gender: String(row?.Gender ?? row?.gender ?? "Prefer not to say").trim(),
+      topArtist2: String(row?.["Top Artist #2"] ?? row?.artist2 ?? "").trim(),
+      topArtist3: String(row?.["Top Artist #3"] ?? row?.artist3 ?? "").trim(),
+      ageRange: String(row?.["Age Range"] ?? row?.ageRange ?? "").trim(),
+      region: String(row?.Region ?? row?.region ?? "").trim(),
+      topArtist1SpotifyName: String(row?.topArtist1SpotifyName ?? "").trim(),
+      topArtist1SpotifyId: String(row?.topArtist1SpotifyId ?? "").trim(),
+      topArtist1ImageUrl: String(
+        row?.topArtist1ImageUrl ??
+          row?.topArtist1ImageURL ??
+          row?.["Top Artist 1 Image URL"] ??
+          row?.["Top Artist #1 Image URL"] ??
+          row?.artist1ImageUrl ??
+          ""
+      ).trim(),
+      topArtist1SpotifyUrl: String(row?.topArtist1SpotifyUrl ?? "").trim(),
     }))
     .filter((entry) => entry.artist);
 
@@ -654,65 +928,43 @@ function renderRows(rows) {
     return;
   }
 
-  const markerRadius = 15.2;
-  const padding = 56;
-  const baseSpan = Math.max(560, Math.sqrt(entries.length) * 66);
-  const dataWidth = padding * 2 + baseSpan * 1.16;
-  const dataHeight = padding * 2 + baseSpan * 0.94;
+  const padding = 72;
+  const xSpacing = 98;
+  const ySpacing = 84;
+  const cols = Math.max(3, Math.ceil(Math.sqrt(entries.length * 1.25)));
+  const rowsCount = Math.ceil(entries.length / cols);
+  const usableWidth = (cols - 1) * xSpacing + xSpacing / 2;
+  const usableHeight = (rowsCount - 1) * ySpacing;
+  const dataWidth = padding * 2 + usableWidth;
+  const dataHeight = padding * 2 + usableHeight;
   const width = Math.max(Math.round(dataWidth), window.innerWidth);
   const height = Math.max(Math.round(dataHeight), window.innerHeight);
-  const minGap = markerRadius * 2 + 4;
-  const minGapSq = minGap * minGap;
-  const placed = [];
+  const xStart = (width - usableWidth) / 2;
+  const yStart = (height - usableHeight) / 2;
 
   const points = entries.map((entry, index) => {
-    const seed = hashText(`${entry.artist}|${entry.genre}|${entry.gender}|${index}`);
-    let bestX = padding + seededNoise(seed, 1) * (width - padding * 2);
-    let bestY = padding + seededNoise(seed, 2) * (height - padding * 2);
-    let bestScore = -1;
+    const col = index % cols;
+    const row = Math.floor(index / cols);
+    const offsetX = row % 2 === 0 ? 0 : xSpacing / 2;
 
-    for (let attempt = 0; attempt < 110; attempt += 1) {
-      const nx = seededNoise(seed, attempt * 2 + 1);
-      const ny = seededNoise(seed, attempt * 2 + 2);
-      const candidateX = padding + nx * (width - padding * 2);
-      const candidateY = padding + ny * (height - padding * 2);
-
-      let nearestSq = Infinity;
-      for (let i = 0; i < placed.length; i += 1) {
-        const px = placed[i].x;
-        const py = placed[i].y;
-        const ddx = candidateX - px;
-        const ddy = candidateY - py;
-        const distSq = ddx * ddx + ddy * ddy;
-        if (distSq < nearestSq) {
-          nearestSq = distSq;
-        }
-      }
-
-      const score = placed.length ? nearestSq : minGapSq;
-      if (score > bestScore) {
-        bestScore = score;
-        bestX = candidateX;
-        bestY = candidateY;
-      }
-
-      if (score >= minGapSq) {
-        break;
-      }
-    }
-
-    const point = {
+    return {
+      displayName: entry.displayName,
       artist: entry.artist,
       genre: entry.genre || "Other",
       gender: entry.gender || "Prefer not to say",
+      topArtist2: entry.topArtist2,
+      topArtist3: entry.topArtist3,
+      ageRange: entry.ageRange,
+      region: entry.region,
+      topArtist1SpotifyName: entry.topArtist1SpotifyName,
+      topArtist1SpotifyId: entry.topArtist1SpotifyId,
+      topArtist1ImageUrl: entry.topArtist1ImageUrl || entry.rawTopArtist1ImageUrl,
+      topArtist1SpotifyUrl: entry.topArtist1SpotifyUrl,
       imageSrc: getParticipantImage(entry.gender),
       normalizedArtist: entry.artist.toLowerCase(),
-      x: bestX,
-      y: bestY,
+      x: xStart + col * xSpacing + offsetX,
+      y: yStart + row * ySpacing,
     };
-
-    placed.push(point);
-    return point;
   });
 
   const groupedByArtist = points.reduce((map, point) => {
@@ -735,9 +987,7 @@ function renderRows(rows) {
         segments += `
           <g class="link-group" data-artist-key="${escapeHtml(group[0].normalizedArtist)}">
             <path d="${d}" class="link-line-scribble" aria-hidden="true"></path>
-            <path d="${d}" class="link-hit">
-              <title>Top Artist #1: ${artistName}</title>
-            </path>
+            <path d="${d}" class="link-hit"></path>
           </g>
         `;
       }
@@ -761,7 +1011,20 @@ function renderRows(rows) {
       (point, index) => {
         const ringColor = getGenreColor(point.genre);
         return `
-      <g class="point-group" data-artist-key="${escapeHtml(point.normalizedArtist)}" style="--genre-color: ${ringColor};">
+      <g
+        class="point-group"
+        data-artist-key="${escapeHtml(point.normalizedArtist)}"
+        data-display-name="${escapeHtml(point.displayName)}"
+        data-artist-name="${escapeHtml(point.artist)}"
+        data-avatar-src="${escapeHtml(point.imageSrc)}"
+        data-top-artist1-spotify-name="${escapeHtml(point.topArtist1SpotifyName)}"
+        data-top-artist1-image-url="${escapeHtml(point.topArtist1ImageUrl)}"
+        data-top-artist2="${escapeHtml(point.topArtist2)}"
+        data-top-artist3="${escapeHtml(point.topArtist3)}"
+        data-age-range="${escapeHtml(point.ageRange)}"
+        data-region="${escapeHtml(point.region)}"
+        style="--genre-color: ${ringColor};"
+      >
         <path
           class="genre-scribble"
           d="${createScribblePath(point.x, point.y, 15.2, `${point.artist}|${point.genre}|${index}`)}"
@@ -777,9 +1040,7 @@ function renderRows(rows) {
           preserveAspectRatio="xMidYMid slice"
           clip-path="url(#avatar-clip-${index})"
         ></image>
-        <circle class="point-hit" cx="${point.x}" cy="${point.y}" r="12.4">
-          <title>Top Artist #1: ${escapeHtml(point.artist)} | Genre: ${escapeHtml(point.genre)} | Gender: ${escapeHtml(point.gender)}</title>
-        </circle>
+        <circle class="point-hit" cx="${point.x}" cy="${point.y}" r="12.4"></circle>
       </g>
     `;
       }

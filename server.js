@@ -66,6 +66,45 @@ const FIELD_DEFS = [
     label: "Region",
     aliases: ["Where do you currently live?", "Where do you currently live", "Region", "Location", "region"],
   },
+  {
+    label: "topArtist1SpotifyName",
+    aliases: [
+      "topArtist1SpotifyName",
+      "Top Artist 1 Spotify Name",
+      "top_artist_1_spotify_name",
+      "artist1SpotifyName",
+    ],
+  },
+  {
+    label: "topArtist1SpotifyId",
+    aliases: [
+      "topArtist1SpotifyId",
+      "Top Artist 1 Spotify Id",
+      "Top Artist 1 Spotify ID",
+      "top_artist_1_spotify_id",
+      "artist1SpotifyId",
+    ],
+  },
+  {
+    label: "topArtist1ImageUrl",
+    aliases: [
+      "topArtist1ImageUrl",
+      "Top Artist 1 Image Url",
+      "Top Artist 1 Image URL",
+      "top_artist_1_image_url",
+      "artist1ImageUrl",
+    ],
+  },
+  {
+    label: "topArtist1SpotifyUrl",
+    aliases: [
+      "topArtist1SpotifyUrl",
+      "Top Artist 1 Spotify Url",
+      "Top Artist 1 Spotify URL",
+      "top_artist_1_spotify_url",
+      "artist1SpotifyUrl",
+    ],
+  },
 ];
 
 const MIME_TYPES = {
@@ -101,16 +140,61 @@ function getRows(payload) {
   return [];
 }
 
+function pickLooseValue(row, predicate) {
+  const entries = Object.entries(row || {});
+  for (let i = 0; i < entries.length; i += 1) {
+    const [key, raw] = entries[i];
+    const value = String(raw ?? "").trim();
+    if (!value) {
+      continue;
+    }
+    if (predicate(normalizeKey(key))) {
+      return value;
+    }
+  }
+  return "";
+}
+
 function sanitizeRow(row) {
   const valueByKey = new Map(
     Object.entries(row || {}).map(([key, value]) => [normalizeKey(key), value ?? ""])
   );
 
-  return FIELD_DEFS.reduce((result, field) => {
+  const result = FIELD_DEFS.reduce((acc, field) => {
     const matchedAlias = field.aliases.find((alias) => valueByKey.has(normalizeKey(alias)));
-    result[field.label] = matchedAlias ? valueByKey.get(normalizeKey(matchedAlias)) : "";
-    return result;
+    acc[field.label] = matchedAlias ? valueByKey.get(normalizeKey(matchedAlias)) : "";
+    return acc;
   }, {});
+
+  if (!String(result.topArtist1SpotifyName || "").trim()) {
+    result.topArtist1SpotifyName = pickLooseValue(
+      row,
+      (k) => k.includes("topartist1") && k.includes("spotify") && k.includes("name")
+    );
+  }
+
+  if (!String(result.topArtist1SpotifyId || "").trim()) {
+    result.topArtist1SpotifyId = pickLooseValue(
+      row,
+      (k) => k.includes("topartist1") && k.includes("spotify") && k.includes("id")
+    );
+  }
+
+  if (!String(result.topArtist1ImageUrl || "").trim()) {
+    result.topArtist1ImageUrl = pickLooseValue(
+      row,
+      (k) => k.includes("topartist1") && k.includes("image") && k.includes("url")
+    );
+  }
+
+  if (!String(result.topArtist1SpotifyUrl || "").trim()) {
+    result.topArtist1SpotifyUrl = pickLooseValue(
+      row,
+      (k) => k.includes("topartist1") && k.includes("spotify") && k.includes("url")
+    );
+  }
+
+  return result;
 }
 
 function collectRowKeys(rows) {

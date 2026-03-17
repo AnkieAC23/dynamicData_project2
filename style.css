@@ -70,9 +70,11 @@ main {
 
 .hero-copy {
   position: fixed;
-  top: 24px;
-  left: 24px;
-  max-width: min(380px, 52vw);
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: auto;
+  text-align: center;
   z-index: 15;
 }
 
@@ -84,22 +86,15 @@ main {
 }
 
 .title-main {
-  display: inline-block;
+  display: inline;
   font-size: clamp(2rem, 4vw, 3rem);
 }
 
 .title-sub {
-  display: inline-block;
+  display: inline;
   font-size: clamp(1.2rem, 2.25vw, 1.7rem);
-  margin-top: 4px;
+  margin-left: 8px;
   opacity: 0.95;
-}
-
-.hero-copy p {
-  margin: 10px 0 0;
-  color: #b8cad4;
-  font-size: 0.92rem;
-  line-height: 1.4;
 }
 
 #responses {
@@ -192,6 +187,133 @@ main {
   stroke: transparent;
   stroke-width: 8;
   pointer-events: all;
+}
+
+.point-tooltip {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 244px;
+  max-width: min(244px, calc(100vw - 24px));
+  padding: 14px 14px 12px;
+  border-radius: 16px;
+  background: rgba(252, 249, 240, 0.97);
+  color: #0f172a;
+  box-shadow: 0 10px 30px rgba(2, 6, 23, 0.34);
+  z-index: 45;
+  pointer-events: auto;
+  text-align: center;
+}
+
+.point-tooltip-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.1);
+  color: #0f172a;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.point-tooltip-close:hover {
+  background: rgba(15, 23, 42, 0.18);
+}
+
+.point-tooltip::after {
+  content: "";
+  position: absolute;
+  left: -8px;
+  top: 22px;
+  width: 0;
+  height: 0;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-right: 8px solid rgba(252, 249, 240, 0.97);
+}
+
+.point-tooltip.is-hidden {
+  display: none;
+}
+
+.point-tooltip-name {
+  font-size: 0.9rem;
+  font-weight: 800;
+  line-height: 1.25;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.point-tooltip-image-wrap {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.point-tooltip-image {
+  width: 112px;
+  height: 112px;
+  border-radius: 12px;
+  object-fit: cover;
+  background: #d7dde2;
+}
+
+.point-tooltip-image-empty {
+  display: grid;
+  place-items: center;
+  color: #334155;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.point-tooltip-artist1 {
+  font-size: 0.84rem;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.point-tooltip-artists-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 7px;
+}
+
+.point-tooltip-artists-row .point-tooltip-meta {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.point-tooltip-location-row {
+  margin-top: 12px;
+}
+
+.point-tooltip-meta {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2px;
+  margin-bottom: 7px;
+}
+
+.point-tooltip-meta span {
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #475569;
+  text-align: center;
+}
+
+.point-tooltip-meta strong {
+  font-size: 0.78rem;
+  line-height: 1.2;
+  color: #0f172a;
+  text-align: center;
 }
 
 .empty {
@@ -350,6 +472,26 @@ body.symbol-open #legendToggle {
   z-index: 22;
 }
 
+.info-btn {
+  position: fixed;
+  left: 14px;
+  bottom: 58px;
+  border: none;
+  border-radius: 9px;
+  padding: 8px 12px;
+  background: #fcf9f0;
+  color: #0f172a;
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(2, 6, 23, 0.28);
+  z-index: 22;
+}
+
+.info-btn:hover {
+  background: #ffffff;
+}
+
 .zoom-slider-wrap {
   display: flex;
   align-items: center;
@@ -393,12 +535,8 @@ body.symbol-open #legendToggle {
 @media (max-width: 900px) {
   .hero-copy {
     top: 16px;
-    left: 16px;
-    max-width: min(320px, 62vw);
-  }
-
-  .hero-copy p {
-    font-size: 0.82rem;
+    left: 50%;
+    transform: translateX(-50%);
   }
 
   .legend-toggle {
@@ -411,6 +549,13 @@ body.symbol-open #legendToggle {
     left: 12px;
     bottom: 12px;
     gap: 6px;
+  }
+
+  .info-btn {
+    left: 12px;
+    bottom: 56px;
+    padding: 7px 10px;
+    font-size: 0.72rem;
   }
 
   .zoom-slider-wrap {
