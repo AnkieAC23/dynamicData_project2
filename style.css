@@ -241,6 +241,27 @@ main {
   display: none;
 }
 
+.line-hover-tooltip {
+  position: fixed;
+  left: 0;
+  top: 0;
+  max-width: min(260px, calc(100vw - 20px));
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(2, 18, 27, 0.96);
+  color: #fcf9f0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.25;
+  box-shadow: 0 8px 20px rgba(2, 6, 23, 0.35);
+  z-index: 44;
+  pointer-events: none;
+}
+
+.line-hover-tooltip.is-hidden {
+  display: none;
+}
+
 .point-tooltip-name {
   font-size: 0.9rem;
   font-weight: 800;

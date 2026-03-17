@@ -83,7 +83,9 @@ let expectedLoadMs = 9000;
 let initialFetchInFlight = false;
 let mockRowsCache = null;
 let pointTooltipEl = null;
+let lineTooltipEl = null;
 let interactionsAbortController = null;
+const INITIAL_TITLE_CLEARANCE = 80;
 
 function setStatus(message) {
   if (statusText) {
@@ -195,6 +197,16 @@ function getGenreColor(genre) {
 function getParticipantImage(gender) {
   const normalizedGender = normalizeKey(gender);
   return GENDER_IMAGE_MAP[normalizedGender] || GENDER_IMAGE_MAP.prefernottosay;
+}
+
+function getInitialTopSafeInset() {
+  const heading = document.querySelector(".hero-copy");
+  if (!heading) {
+    return 0;
+  }
+
+  const rect = heading.getBoundingClientRect();
+  return Math.max(0, Math.ceil(rect.bottom + INITIAL_TITLE_CLEARANCE));
 }
 
 function hashText(text) {
@@ -324,6 +336,17 @@ function ensurePointTooltip() {
   return pointTooltipEl;
 }
 
+function ensureLineTooltip() {
+  if (lineTooltipEl) {
+    return lineTooltipEl;
+  }
+
+  lineTooltipEl = document.createElement("div");
+  lineTooltipEl.className = "line-hover-tooltip is-hidden";
+  document.body.appendChild(lineTooltipEl);
+  return lineTooltipEl;
+}
+
 function positionPointTooltip(clientX, clientY) {
   const tooltip = ensurePointTooltip();
   const pad = 12;
@@ -347,6 +370,45 @@ function positionPointTooltip(clientX, clientY) {
 
   tooltip.style.left = `${Math.round(x)}px`;
   tooltip.style.top = `${Math.round(y)}px`;
+}
+
+function positionLineTooltip(clientX, clientY) {
+  const tooltip = ensureLineTooltip();
+  const pad = 10;
+  const offset = 14;
+  let x = clientX + offset;
+  let y = clientY - offset;
+
+  const rect = tooltip.getBoundingClientRect();
+  if (x + rect.width > window.innerWidth - pad) {
+    x = clientX - rect.width - offset;
+  }
+  if (y + rect.height > window.innerHeight - pad) {
+    y = window.innerHeight - rect.height - pad;
+  }
+  if (y < pad) {
+    y = pad;
+  }
+  if (x < pad) {
+    x = pad;
+  }
+
+  tooltip.style.left = `${Math.round(x)}px`;
+  tooltip.style.top = `${Math.round(y)}px`;
+}
+
+function showLineTooltip(artistName, event) {
+  const tooltip = ensureLineTooltip();
+  tooltip.textContent = `Connected by: ${artistName || "Unknown artist"}`;
+  tooltip.classList.remove("is-hidden");
+  positionLineTooltip(event.clientX, event.clientY);
+}
+
+function hideLineTooltip() {
+  if (!lineTooltipEl) {
+    return;
+  }
+  lineTooltipEl.classList.add("is-hidden");
 }
 
 function resolveTooltipImageUrl(rawValue) {
@@ -765,6 +827,7 @@ function attachRevealInteractions() {
     activeArtistKey = null;
     activeGroup = null;
     hidePointTooltip();
+    hideLineTooltip();
     if (hoveredArtistKey) {
       setRevealState(hoveredArtistKey, true);
     }
@@ -847,6 +910,34 @@ function attachRevealInteractions() {
         activeGroup = group;
         setRevealState(artistKey, true);
         showPointTooltip(pointData, event);
+      },
+      { signal }
+    );
+  });
+
+  linkGroups.forEach((link) => {
+    const artistName = link.dataset.artistName || "";
+
+    link.addEventListener(
+      "pointerenter",
+      (event) => {
+        showLineTooltip(artistName, event);
+      },
+      { signal }
+    );
+
+    link.addEventListener(
+      "pointermove",
+      (event) => {
+        positionLineTooltip(event.clientX, event.clientY);
+      },
+      { signal }
+    );
+
+    link.addEventListener(
+      "pointerleave",
+      () => {
+        hideLineTooltip();
       },
       { signal }
     );
@@ -935,12 +1026,15 @@ function renderRows(rows) {
   const rowsCount = Math.ceil(entries.length / cols);
   const usableWidth = (cols - 1) * xSpacing + xSpacing / 2;
   const usableHeight = (rowsCount - 1) * ySpacing;
+  const topSafeInset = getInitialTopSafeInset();
+  const bottomSafeInset = padding;
   const dataWidth = padding * 2 + usableWidth;
-  const dataHeight = padding * 2 + usableHeight;
+  const dataHeight = topSafeInset + bottomSafeInset + usableHeight;
   const width = Math.max(Math.round(dataWidth), window.innerWidth);
   const height = Math.max(Math.round(dataHeight), window.innerHeight);
   const xStart = (width - usableWidth) / 2;
-  const yStart = (height - usableHeight) / 2;
+  const availableHeight = Math.max(usableHeight, height - topSafeInset - bottomSafeInset);
+  const yStart = topSafeInset + (availableHeight - usableHeight) / 2;
 
   const points = entries.map((entry, index) => {
     const col = index % cols;
@@ -978,14 +1072,15 @@ function renderRows(rows) {
     .filter((group) => group.length > 1)
     .map((group) => {
       let segments = "";
-      const artistName = escapeHtml(group[0].artist);
+      const artistName = group[0].artist;
+      const artistNameEscaped = escapeHtml(artistName);
 
       for (let i = 1; i < group.length; i += 1) {
         const from = group[i - 1];
         const to = group[i];
         const d = createScribbleConnectionPath(from, to, `${artistName}|${i}`);
         segments += `
-          <g class="link-group" data-artist-key="${escapeHtml(group[0].normalizedArtist)}">
+          <g class="link-group" data-artist-key="${escapeHtml(group[0].normalizedArtist)}" data-artist-name="${artistNameEscaped}">
             <path d="${d}" class="link-line-scribble" aria-hidden="true"></path>
             <path d="${d}" class="link-hit"></path>
           </g>
