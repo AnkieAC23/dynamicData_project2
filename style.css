@@ -647,8 +647,8 @@ body.symbol-open #legendToggle {
 }
 
 .entry-popup-card {
-  width: min(980px, calc(100vw - 36px));
-  height: min(86vh, 820px);
+  width: min(1100px, calc(100vw - 24px));
+  height: min(92vh, 920px);
   display: grid;
   grid-template-rows: auto 1fr;
   gap: 10px;
@@ -701,7 +701,7 @@ body.symbol-open #legendToggle {
 .entry-popup-frame {
   width: 100%;
   height: 100%;
-  min-height: 520px;
+  min-height: 640px;
   border: 0;
   display: block;
 }
@@ -1070,13 +1070,13 @@ body.symbol-open #legendToggle {
   }
 
   .entry-popup-card {
-    width: min(980px, calc(100vw - 22px));
-    height: min(88vh, 820px);
+    width: min(1100px, calc(100vw - 12px));
+    height: min(92vh, 920px);
     padding: 12px 12px 10px;
   }
 
   .entry-popup-frame {
-    min-height: 440px;
+    min-height: 560px;
   }
 
   .info-btn {

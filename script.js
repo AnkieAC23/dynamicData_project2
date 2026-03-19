@@ -27,7 +27,7 @@ const GENDER_IMAGE_MAP = {
 const URL_PARAMS = new URLSearchParams(window.location.search);
 const USE_MOCK_DATA = URL_PARAMS.get("mock") === "1" || URL_PARAMS.get("fake") === "1";
 const MOCK_DATA_COUNT = Math.min(
-  40,
+  100,
   Math.max(10, Number.parseInt(URL_PARAMS.get("mockCount") || "40", 10) || 40)
 );
 const MOCK_ARTISTS = [
@@ -76,6 +76,8 @@ const entryBtn = document.getElementById("entryBtn");
 const entryPanel = document.getElementById("entryPanel");
 const entryClose = document.getElementById("entryClose");
 const entryToggleSymbol = document.getElementById("entryToggleSymbol");
+const entryFrame = document.getElementById("entryFrame");
+const entryFrameInitialSrc = entryFrame?.getAttribute("src") || "";
 const zoomRange = document.getElementById("zoomRange");
 const zoomValue = document.getElementById("zoomValue");
 const zoomResetBtn = document.getElementById("zoomResetBtn");
@@ -96,6 +98,7 @@ let pointTooltipEl = null;
 let lineTooltipEl = null;
 let interactionsAbortController = null;
 const INITIAL_TITLE_CLEARANCE = 110;
+const FIRST_ROW_EXTRA_GAP = 12;
 const SVG_CACHE = {};
 let introGateActive = Boolean(infoPanel && infoClose);
 
@@ -760,6 +763,10 @@ function closeEntryPanel() {
   if (entryToggleSymbol) {
     entryToggleSymbol.textContent = ">";
   }
+
+  if (entryFrame && entryFrameInitialSrc) {
+    entryFrame.setAttribute("src", "about:blank");
+  }
 }
 
 function openEntryPanel() {
@@ -770,6 +777,10 @@ function openEntryPanel() {
   if (introGateActive) {
     remindDiscoverButton();
     return;
+  }
+
+  if (entryFrame && entryFrameInitialSrc) {
+    entryFrame.setAttribute("src", entryFrameInitialSrc);
   }
 
   closeInfoGuide({ force: true });
@@ -1367,14 +1378,13 @@ function renderRows(rows) {
   const usableWidth = (cols - 1) * xSpacing + xSpacing / 2;
   const usableHeight = (rowsCount - 1) * ySpacing;
   const topSafeInset = getInitialTopSafeInset();
+  const yStart = topSafeInset + FIRST_ROW_EXTRA_GAP;
   const bottomSafeInset = padding;
   const dataWidth = padding * 2 + usableWidth;
-  const dataHeight = topSafeInset + bottomSafeInset + usableHeight;
+  const dataHeight = yStart + bottomSafeInset + usableHeight;
   const width = Math.max(Math.round(dataWidth), window.innerWidth);
   const height = Math.max(Math.round(dataHeight), window.innerHeight);
   const xStart = (width - usableWidth) / 2;
-  const availableHeight = Math.max(usableHeight, height - topSafeInset - bottomSafeInset);
-  const yStart = topSafeInset + (availableHeight - usableHeight) / 2;
 
   const points = entries.map((entry, index) => {
     const col = index % cols;
@@ -1511,7 +1521,7 @@ async function fetchAndRender() {
   let lastError = null;
 
   if (!hasLoadedOnce) {
-    setLoadingState(true, "Your connections await");
+    setLoadingState(true, "Finding your music connections...");
     startLoadingProgress();
   }
 
@@ -1567,7 +1577,7 @@ async function fetchAndRender() {
   responsesContainer.innerHTML = '<p class="empty">Unable to load Top Artist #1 data.</p>';
   if (lastError) {
     setStatus(`Failed to load data: ${lastError.message}`);
-    setLoadingState(true, "Still reaching for your connections...");
+    setLoadingState(true, "Finding your music connections...");
     stopLoadingProgress();
     loadingProgress = Math.max(loadingProgress, 96);
     renderLoadingProgress();
