@@ -1,6 +1,7 @@
 const http = require("http");
 const fs = require("fs/promises");
 const path = require("path");
+require("dotenv").config();
 
 const PORT = Number(process.env.PORT || 3000);
 const APPS_SCRIPT_URL =

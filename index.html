@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dynamic Data Project 2</title>
+    <link rel="stylesheet" href="https://use.typekit.net/sot5lbi.css" />
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
@@ -18,8 +19,8 @@
 
     <header class="hero-copy" aria-label="Project heading">
       <h1>
-        <span class="title-main">Connections</span>
-        <span class="title-sub">(feat. Music)</span>
+        <span class="title-main">Cönnections</span>
+        <span class="title-sub">( feat. Music )</span>
       </h1>
     </header>
 
@@ -65,25 +66,49 @@
           <span>Colour Guide</span>
         </button>
         <div class="legend-content">
-          <div class="legend-bar" style="--bar-color: #ff80a1">Pop</div>
-          <div class="legend-bar" style="--bar-color: #f0cfc7">K-pop</div>
-          <div class="legend-bar" style="--bar-color: #ed321f">Rock</div>
-          <div class="legend-bar" style="--bar-color: #1db695">Hip-hop / Rap</div>
-          <div class="legend-bar" style="--bar-color: #967cc7">R&amp;B / Soul</div>
-          <div class="legend-bar" style="--bar-color: #05bed6">Electronic / Dance</div>
-          <div class="legend-bar" style="--bar-color: #e69843">Country</div>
-          <div class="legend-bar" style="--bar-color: #8e663f">Folk / Singer-Songwriter / Indie</div>
-          <div class="legend-bar" style="--bar-color: #6698cc">Jazz / Blues</div>
-          <div class="legend-bar" style="--bar-color: #e0f9fd">Classical</div>
-          <div class="legend-bar" style="--bar-color: #3bcf57">Reggae</div>
-          <div class="legend-bar" style="--bar-color: #fee58b">Latin</div>
-          <div class="legend-bar" style="--bar-color: #c0c6d0">Metal</div>
-          <div class="legend-bar" style="--bar-color: #fcf9f0">Other</div>
+          <div class="legend-bar" style="--bar-color: #ff6f91">Pop</div>
+          <div class="legend-bar" style="--bar-color: #f7b8a8">K-pop</div>
+          <div class="legend-bar" style="--bar-color: #ff3b2f">Rock</div>
+          <div class="legend-bar" style="--bar-color: #20c997">Hip-hop / Rap</div>
+          <div class="legend-bar" style="--bar-color: #8b6ee8">R&amp;B / Soul</div>
+          <div class="legend-bar" style="--bar-color: #00cfe8">Electronic / Dance</div>
+          <div class="legend-bar" style="--bar-color: #f4a261">Country</div>
+          <div class="legend-bar" style="--bar-color: #a47148">Folk / Singer-Songwriter / Indie</div>
+          <div class="legend-bar" style="--bar-color: #5fa8ff">Jazz / Blues</div>
+          <div class="legend-bar" style="--bar-color: #9bdaf1">Classical</div>
+          <div class="legend-bar" style="--bar-color: #2ddf6e">Reggae</div>
+          <div class="legend-bar" style="--bar-color: #ffe066">Latin</div>
+          <div class="legend-bar" style="--bar-color: #aeb6c1">Metal</div>
+          <div class="legend-bar" style="--bar-color: #ffffff">Other</div>
         </div>
       </div>
     </aside>
 
-    <button class="info-btn" type="button" aria-label="About or instructions">About / Instructions</button>
+    <aside class="info-legend" aria-label="How it works">
+      <button
+        id="infoToggle"
+        class="info-btn"
+        type="button"
+        aria-label="How it works"
+        aria-expanded="false"
+        aria-controls="infoPanel"
+      >
+        <span>How it works</span>
+        <span id="infoToggleSymbol" class="legend-symbol" aria-hidden="true">&gt;</span>
+      </button>
+    </aside>
+
+    <div id="infoPanel" class="info-popup" aria-hidden="true" role="dialog" aria-modal="true" aria-label="How it works details">
+      <div class="info-popup-card">
+        <button id="infoClose" class="info-popup-close" type="button" aria-label="Close how it works">x</button>
+        <div class="info-popup-text">
+          <p>Each circle is one person.</p>
+          <p>Line links mean matching Top Artist #1.</p>
+          <p>Click a circle to open details.</p>
+          <p>Hover a line to see the shared artist.</p>
+        </div>
+      </div>
+    </div>
 
     <div class="zoom-controls" aria-label="Zoom controls">
       <label class="zoom-slider-wrap" for="zoomRange">

@@ -2,20 +2,20 @@ const API_URLS = ["/api/responses", "http://localhost:3000/api/responses"];
 const POLL_INTERVAL_MS = 5000;
 const BASELINE_ZOOM = 1.43;
 const GENRE_COLORS = {
-  Pop: "#ff80a1",
-  "K-pop": "#f0cfc7",
-  Rock: "#ed321f",
-  "Hip-hop / Rap": "#1db695",
-  "R&B / Soul": "#967cc7",
-  "Electronic / Dance": "#05bed6",
-  Country: "#e69843",
-  "Folk / Singer-Songwriter / Indie": "#8e663f",
-  "Jazz / Blues": "#6698cc",
-  Classical: "#e0f9fd",
-  Reggae: "#3bcf57",
-  Latin: "#fee58b",
-  Metal: "#c0c6d0",
-  Other: "#fcf9f0",
+  Pop: "#ff6f91",
+  "K-pop": "#f7b8a8",
+  Rock: "#ff3b2f",
+  "Hip-hop / Rap": "#20c997",
+  "R&B / Soul": "#8b6ee8",
+  "Electronic / Dance": "#00cfe8",
+  Country: "#f4a261",
+  "Folk / Singer-Songwriter / Indie": "#a47148",
+  "Jazz / Blues": "#5fa8ff",
+  Classical: "#9bdaf1",
+  Reggae: "#2ddf6e",
+  Latin: "#ffe066",
+  Metal: "#aeb6c1",
+  Other: "#ffffff",
 };
 const GENDER_IMAGE_MAP = {
   woman: "images/woman.png",
@@ -67,6 +67,11 @@ const symbolContainer = document.querySelector(".symbol-legend");
 const symbolToggle = document.getElementById("symbolToggle");
 const symbolPanel = document.getElementById("symbolPanel");
 const symbolToggleSymbol = document.getElementById("symbolToggleSymbol");
+const infoContainer = document.querySelector(".info-legend");
+const infoToggle = document.getElementById("infoToggle");
+const infoPanel = document.getElementById("infoPanel");
+const infoToggleSymbol = document.getElementById("infoToggleSymbol");
+const infoClose = document.getElementById("infoClose");
 const zoomRange = document.getElementById("zoomRange");
 const zoomValue = document.getElementById("zoomValue");
 const zoomResetBtn = document.getElementById("zoomResetBtn");
@@ -85,7 +90,8 @@ let mockRowsCache = null;
 let pointTooltipEl = null;
 let lineTooltipEl = null;
 let interactionsAbortController = null;
-const INITIAL_TITLE_CLEARANCE = 80;
+const INITIAL_TITLE_CLEARANCE = 110;
+const SVG_CACHE = {};
 
 function setStatus(message) {
   if (statusText) {
@@ -205,8 +211,32 @@ function getInitialTopSafeInset() {
     return 0;
   }
 
+  // Use offset metrics so transform animations do not shift layout on later poll re-renders.
+  const top = Number.isFinite(heading.offsetTop) ? heading.offsetTop : 0;
+  const height = Number.isFinite(heading.offsetHeight) ? heading.offsetHeight : 0;
+
+  if (height > 0) {
+    return Math.max(0, Math.ceil(top + height + INITIAL_TITLE_CLEARANCE));
+  }
+
   const rect = heading.getBoundingClientRect();
   return Math.max(0, Math.ceil(rect.bottom + INITIAL_TITLE_CLEARANCE));
+}
+
+function getSvgInlineElement(imageSrc, gender) {
+  // Map normalized gender to SVG content directly
+  const normalizedGender = normalizeKey(gender);
+  
+  const svgMap = {
+    woman: '<circle cx="200" cy="97.69231" r="87.69231" fill="currentColor" stroke-width="0"/><circle cx="97.69231" cy="200" r="87.69231" fill="currentColor" stroke-width="0"/><circle cx="200" cy="302.30769" r="87.69231" fill="currentColor" stroke-width="0"/><circle cx="302.30769" cy="200" r="87.69231" fill="currentColor" stroke-width="0"/><circle cx="200" cy="200" r="47.8186" fill="currentColor" stroke-width="0"/>',
+    man: '<circle cx="200" cy="200" r="180" fill="currentColor" stroke-width="0"/>',
+    nonbinary: '<path d="m208.17287,23.93301l51.65263,104.65967c1.32757,2.68994,3.89376,4.55439,6.86229,4.98575l115.4988,16.78296c7.47551,1.08625,10.46044,10.27294,5.05111,15.54573l-83.57572,81.46619c-2.14805,2.09383-3.12825,5.11057-2.62116,8.06711l19.72955,115.03211c1.27697,7.4453-6.53769,13.12298-13.22399,9.60779l-103.30527-54.31079c-2.65513-1.39589-5.82713-1.39589-8.48226,0l-103.30527,54.31079c-6.6863,3.51519-14.50096-2.16249-13.22399-9.60779l19.72955-115.03211c.50709-2.95654-.47311-5.97328-2.62116-8.06711L12.76229,165.90711c-5.40933-5.27279-2.42439-14.45947,5.05111-15.54573l115.4988-16.78296c2.96853-.43135,5.53473-2.2958,6.86229-4.98575l51.65263-104.65967c3.34315-6.77396,13.0026-6.77396,16.34575,0Z" fill="currentColor" stroke-width="0"/>',
+    other: '<path d="m358.52059,181.6907c-28.56388-94.11691-130.83491-140.07861-223.25923-106.43884-73.93946,26.91182-112.06289,108.66793-85.15107,182.60738,21.52945,59.15156,96.93434,92.65031,156.08591,71.12086,47.32125-17.22356,81.72025-72.54747,64.49668-119.86873-13.77885-37.857-55.63798-57.3762-93.49498-43.59735-30.2856,11.02308-40.90096,44.51038-29.87788,74.79598" fill="none" stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="65"/>',
+    prefernottosay: '<line x1="75" y1="75" x2="325" y2="325" fill="none" stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="80"/><line x1="325" y1="75" x2="75" y2="325" fill="none" stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="80"/>',
+  };
+
+  const svgContent = svgMap[normalizedGender] || svgMap.woman;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 400 400" class="participant-image-svg" aria-hidden="true">${svgContent}</svg>`;
 }
 
 function hashText(text) {
@@ -285,44 +315,162 @@ function createScribblePath(cx, cy, radius, seedText) {
   return `${path} Z`;
 }
 
-function createScribbleConnectionPath(from, to, seedText) {
+function getCubicPoint(from, c1, c2, to, t) {
+  const mt = 1 - t;
+  const mt2 = mt * mt;
+  const t2 = t * t;
+  const x =
+    mt2 * mt * from.x +
+    3 * mt2 * t * c1.x +
+    3 * mt * t2 * c2.x +
+    t2 * t * to.x;
+  const y =
+    mt2 * mt * from.y +
+    3 * mt2 * t * c1.y +
+    3 * mt * t2 * c2.y +
+    t2 * t * to.y;
+  return { x, y };
+}
+
+function getCurveCrowdingPenalty(from, c1, c2, to, points) {
+  const sampleCount = 14;
+  const avoidRadius = 16;
+  let penalty = 0;
+
+  for (let i = 1; i < sampleCount; i += 1) {
+    const sample = getCubicPoint(from, c1, c2, to, i / sampleCount);
+    for (let j = 0; j < points.length; j += 1) {
+      const p = points[j];
+      if (p === from || p === to) {
+        continue;
+      }
+
+      const distance = Math.hypot(sample.x - p.x, sample.y - p.y);
+      if (distance < avoidRadius) {
+        const overlap = avoidRadius - distance;
+        penalty += overlap * overlap;
+      }
+    }
+  }
+
+  return penalty;
+}
+
+function getTwoSegmentCurveCrowdingPenalty(from, c1, c2, mid, c3, c4, to, points) {
+  const firstSegmentPenalty = getCurveCrowdingPenalty(from, c1, c2, mid, points);
+  const secondSegmentPenalty = getCurveCrowdingPenalty(mid, c3, c4, to, points);
+  return firstSegmentPenalty + secondSegmentPenalty;
+}
+
+function createScribbleConnectionPath(from, to, points, seedText) {
   const seed = hashText(seedText);
   const dx = to.x - from.x;
   const dy = to.y - from.y;
   const length = Math.hypot(dx, dy) || 1;
+  const tx = dx / length;
+  const ty = dy / length;
   const nx = -dy / length;
   const ny = dx / length;
 
-  if (length < 74) {
-    const softBendA = (seededNoise(seed, 1) - 0.5) * 9;
-    const softBendB = (seededNoise(seed, 2) - 0.5) * 7;
-    const c1x = from.x + dx * 0.34 + nx * softBendA;
-    const c1y = from.y + dy * 0.34 + ny * softBendA;
-    const c2x = from.x + dx * 0.68 + nx * softBendB;
-    const c2y = from.y + dy * 0.68 + ny * softBendB;
-    return `M ${from.x} ${from.y} C ${c1x.toFixed(2)} ${c1y.toFixed(2)}, ${c2x.toFixed(2)} ${c2y.toFixed(2)}, ${to.x} ${to.y}`;
+  const baseBend = Math.min(Math.max(length * 0.26, 10), 64);
+  const alongDrift = (seededNoise(seed, 7) - 0.5) * 16;
+  const bendScales = [0.9, 1.1, 1.3, 1.5];
+
+  let bestCurve = null;
+
+  for (let i = 0; i < bendScales.length; i += 1) {
+    const bend = baseBend * bendScales[i];
+    for (let directionIndex = 0; directionIndex < 2; directionIndex += 1) {
+      const direction = directionIndex === 0 ? 1 : -1;
+      const leadOffset = bend * direction;
+      const trailOffset = bend * -direction * 0.92;
+      const midOffset = bend * direction * 0.22;
+
+      const mid = {
+        x: from.x + dx * 0.5 + nx * midOffset,
+        y: from.y + dy * 0.5 + ny * midOffset,
+      };
+
+    const c1 = {
+      x: from.x + dx * 0.2 + nx * leadOffset + tx * alongDrift,
+      y: from.y + dy * 0.2 + ny * leadOffset + ty * alongDrift,
+    };
+    const c2 = {
+      x: from.x + dx * 0.42 + nx * (leadOffset * 0.55),
+      y: from.y + dy * 0.42 + ny * (leadOffset * 0.55),
+    };
+
+    // Mirror c2 around the midpoint so the tangent is continuous at the join.
+    const c3 = {
+      x: mid.x + (mid.x - c2.x) * 0.96,
+      y: mid.y + (mid.y - c2.y) * 0.96,
+    };
+    const c4 = {
+      x: from.x + dx * 0.8 + nx * trailOffset - tx * alongDrift,
+      y: from.y + dy * 0.8 + ny * trailOffset - ty * alongDrift,
+    };
+
+    // Prefer routes that stay away from unrelated points while keeping squiggles smooth.
+    const crowdPenalty = getTwoSegmentCurveCrowdingPenalty(from, c1, c2, mid, c3, c4, to, points);
+    const smoothPenalty = Math.abs(leadOffset) * 0.1;
+    const score = crowdPenalty + smoothPenalty;
+
+    if (!bestCurve || score < bestCurve.score) {
+      bestCurve = { c1, c2, mid, c3, c4, score };
+    }
+    }
   }
 
-  const loopStrength = Math.min(Math.max(length * 0.18, 10), 30);
-  const bendA = (seededNoise(seed, 1) - 0.5) * loopStrength * 2.2;
-  const bendB = (seededNoise(seed, 2) - 0.5) * loopStrength * 2.2;
-  const bendC = (seededNoise(seed, 3) - 0.5) * loopStrength * 2.2;
-  const bendD = (seededNoise(seed, 4) - 0.5) * loopStrength * 2.2;
+  const c1 = bestCurve ? bestCurve.c1 : { x: from.x + dx * 0.25, y: from.y + dy * 0.25 };
+  const c2 = bestCurve ? bestCurve.c2 : { x: from.x + dx * 0.42, y: from.y + dy * 0.42 };
+  const mid = bestCurve
+    ? bestCurve.mid
+    : { x: from.x + dx * 0.5 + nx * 8, y: from.y + dy * 0.5 + ny * 8 };
+  const c3 = bestCurve ? bestCurve.c3 : { x: from.x + dx * 0.58, y: from.y + dy * 0.58 };
+  const c4 = bestCurve ? bestCurve.c4 : { x: from.x + dx * 0.75, y: from.y + dy * 0.75 };
 
-  const midX = from.x + dx * 0.5 + nx * ((seededNoise(seed, 5) - 0.5) * loopStrength * 1.1);
-  const midY = from.y + dy * 0.5 + ny * ((seededNoise(seed, 6) - 0.5) * loopStrength * 1.1);
+  return `M ${from.x} ${from.y} C ${c1.x.toFixed(2)} ${c1.y.toFixed(2)}, ${c2.x.toFixed(2)} ${c2.y.toFixed(2)}, ${mid.x.toFixed(2)} ${mid.y.toFixed(2)} C ${c3.x.toFixed(2)} ${c3.y.toFixed(2)}, ${c4.x.toFixed(2)} ${c4.y.toFixed(2)}, ${to.x} ${to.y}`;
+}
 
-  const c1x = from.x + dx * 0.18 + nx * bendA;
-  const c1y = from.y + dy * 0.18 + ny * bendA;
-  const c2x = from.x + dx * 0.36 - nx * bendB;
-  const c2y = from.y + dy * 0.36 - ny * bendB;
+function orderGroupPointsForFlow(group, seedText) {
+  if (group.length <= 2) {
+    return group.slice();
+  }
 
-  const c3x = from.x + dx * 0.64 + nx * bendC;
-  const c3y = from.y + dy * 0.64 + ny * bendC;
-  const c4x = from.x + dx * 0.82 - nx * bendD;
-  const c4y = from.y + dy * 0.82 - ny * bendD;
+  const remaining = group.slice();
+  const seed = hashText(seedText);
+  let startIndex = 0;
+  let startScore = Number.POSITIVE_INFINITY;
 
-  return `M ${from.x} ${from.y} C ${c1x.toFixed(2)} ${c1y.toFixed(2)}, ${c2x.toFixed(2)} ${c2y.toFixed(2)}, ${midX.toFixed(2)} ${midY.toFixed(2)} C ${c3x.toFixed(2)} ${c3y.toFixed(2)}, ${c4x.toFixed(2)} ${c4y.toFixed(2)}, ${to.x} ${to.y}`;
+  for (let i = 0; i < remaining.length; i += 1) {
+    const p = remaining[i];
+    const score = p.x * 0.7 + p.y * 0.3 + seededNoise(seed, i) * 1.5;
+    if (score < startScore) {
+      startScore = score;
+      startIndex = i;
+    }
+  }
+
+  const ordered = [remaining.splice(startIndex, 1)[0]];
+
+  while (remaining.length) {
+    const last = ordered[ordered.length - 1];
+    let bestIndex = 0;
+    let bestDistance = Number.POSITIVE_INFINITY;
+
+    for (let i = 0; i < remaining.length; i += 1) {
+      const candidate = remaining[i];
+      const distance = Math.hypot(candidate.x - last.x, candidate.y - last.y);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestIndex = i;
+      }
+    }
+
+    ordered.push(remaining.splice(bestIndex, 1)[0]);
+  }
+
+  return ordered;
 }
 
 function ensurePointTooltip() {
@@ -497,12 +645,12 @@ function showPointTooltip(pointData, event) {
           : `<div class="point-tooltip-image point-tooltip-image-empty">No image</div>`
       }
     </div>
-    <div class="point-tooltip-artist1">${escapeHtml(artist1Name)}</div>
-    <div class="point-tooltip-artists-row">
-      <div class="point-tooltip-meta"><span>Top Artist #2</span><strong>${escapeHtml(artist2)}</strong></div>
-      <div class="point-tooltip-meta"><span>Top Artist #3</span><strong>${escapeHtml(artist3)}</strong></div>
+    <div class="point-tooltip-top-artists-list">
+      <div class="point-tooltip-meta"><span>Top Artists</span><strong>${escapeHtml(artist1Name)}</strong></div>
+      <div class="point-tooltip-top-artist-item">${escapeHtml(artist2)}</div>
+      <div class="point-tooltip-top-artist-item">${escapeHtml(artist3)}</div>
     </div>
-    <div class="point-tooltip-artists-row point-tooltip-location-row">
+    <div class="point-tooltip-demographics-list point-tooltip-location-row">
       <div class="point-tooltip-meta"><span>Age Range</span><strong>${escapeHtml(ageRange)}</strong></div>
       <div class="point-tooltip-meta"><span>Region</span><strong>${escapeHtml(region)}</strong></div>
     </div>
@@ -554,6 +702,14 @@ function closeLegend() {
   syncGuideButtonVisibility();
 }
 
+function closeInfoGuide() {
+  if (!infoPanel) return;
+  infoPanel.classList.remove("is-open");
+  if (infoToggle) infoToggle.setAttribute("aria-expanded", "false");
+  if (infoPanel) infoPanel.setAttribute("aria-hidden", "true");
+  if (infoToggleSymbol) infoToggleSymbol.textContent = ">";
+}
+
 function toggleLegend() {
   if (!legendContainer || !legendToggle || !legendPanel) {
     return;
@@ -565,7 +721,10 @@ function toggleLegend() {
   if (legendToggleSymbol) {
     legendToggleSymbol.textContent = isOpen ? "x" : "<";
   }
-  if (isOpen) closeSymbolGuide();
+  if (isOpen) {
+    closeSymbolGuide();
+    closeInfoGuide();
+  }
   syncGuideButtonVisibility();
 }
 
@@ -580,8 +739,31 @@ function toggleSymbolGuide() {
   if (symbolToggleSymbol) {
     symbolToggleSymbol.textContent = isOpen ? "x" : "<";
   }
-  if (isOpen) closeLegend();
+  if (isOpen) {
+    closeLegend();
+    closeInfoGuide();
+  }
   syncGuideButtonVisibility();
+}
+
+function toggleInfoGuide() {
+  if (!infoToggle || !infoPanel) {
+    return;
+  }
+
+  const isOpen = !infoPanel.classList.contains("is-open");
+  infoPanel.classList.toggle("is-open", isOpen);
+  infoToggle.setAttribute("aria-expanded", String(isOpen));
+  infoPanel.setAttribute("aria-hidden", String(!isOpen));
+
+  if (infoToggleSymbol) {
+    infoToggleSymbol.textContent = isOpen ? "x" : ">";
+  }
+
+  if (isOpen) {
+    closeLegend();
+    closeSymbolGuide();
+  }
 }
 
 if (legendToggle) {
@@ -590,6 +772,22 @@ if (legendToggle) {
 
 if (symbolToggle) {
   symbolToggle.addEventListener("click", toggleSymbolGuide);
+}
+
+if (infoToggle) {
+  infoToggle.addEventListener("click", toggleInfoGuide);
+}
+
+if (infoClose) {
+  infoClose.addEventListener("click", closeInfoGuide);
+}
+
+if (infoPanel) {
+  infoPanel.addEventListener("click", (event) => {
+    if (event.target === infoPanel) {
+      closeInfoGuide();
+    }
+  });
 }
 
 syncGuideButtonVisibility();
@@ -1074,11 +1272,12 @@ function renderRows(rows) {
       let segments = "";
       const artistName = group[0].artist;
       const artistNameEscaped = escapeHtml(artistName);
+      const routedGroup = orderGroupPointsForFlow(group, artistName);
 
-      for (let i = 1; i < group.length; i += 1) {
-        const from = group[i - 1];
-        const to = group[i];
-        const d = createScribbleConnectionPath(from, to, `${artistName}|${i}`);
+      for (let i = 1; i < routedGroup.length; i += 1) {
+        const from = routedGroup[i - 1];
+        const to = routedGroup[i];
+        const d = createScribbleConnectionPath(from, to, points, `${artistName}|${i}`);
         segments += `
           <g class="link-group" data-artist-key="${escapeHtml(group[0].normalizedArtist)}" data-artist-name="${artistNameEscaped}">
             <path d="${d}" class="link-line-scribble" aria-hidden="true"></path>
@@ -1120,21 +1319,16 @@ function renderRows(rows) {
         data-region="${escapeHtml(point.region)}"
         style="--genre-color: ${ringColor};"
       >
+        <circle class="point-hover-halo" cx="${point.x}" cy="${point.y}" r="18.8"></circle>
+        <circle class="point-hover-backdrop" cx="${point.x}" cy="${point.y}" r="14.6"></circle>
         <path
           class="genre-scribble"
           d="${createScribblePath(point.x, point.y, 15.2, `${point.artist}|${point.genre}|${index}`)}"
           style="fill: #02121b;"
         ></path>
-        <image
-          class="participant-image"
-          href="${escapeHtml(point.imageSrc)}"
-          x="${(point.x - 7.5).toFixed(2)}"
-          y="${(point.y - 7.5).toFixed(2)}"
-          width="15"
-          height="15"
-          preserveAspectRatio="xMidYMid slice"
-          clip-path="url(#avatar-clip-${index})"
-        ></image>
+        <g transform="translate(${point.x - 7.5}, ${point.y - 7.5})">
+          ${getSvgInlineElement(point.imageSrc, point.gender)}
+        </g>
         <circle class="point-hit" cx="${point.x}" cy="${point.y}" r="12.4"></circle>
       </g>
     `;

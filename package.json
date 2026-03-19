@@ -1,6 +1,9 @@
 {
   "name": "dynamicdata-project2",
   "private": true,
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  },
   "scripts": {
     "start": "node server.js"
   },
