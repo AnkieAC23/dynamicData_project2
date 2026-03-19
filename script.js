@@ -78,6 +78,8 @@ const entryClose = document.getElementById("entryClose");
 const entryToggleSymbol = document.getElementById("entryToggleSymbol");
 const entryFrame = document.getElementById("entryFrame");
 const entryFrameInitialSrc = entryFrame?.getAttribute("src") || "";
+const entryReturnPrompt = document.getElementById("entryReturnPrompt");
+const entryReturnCloseBtn = document.getElementById("entryReturnCloseBtn");
 const zoomRange = document.getElementById("zoomRange");
 const zoomValue = document.getElementById("zoomValue");
 const zoomResetBtn = document.getElementById("zoomResetBtn");
@@ -101,6 +103,25 @@ const INITIAL_TITLE_CLEARANCE = 110;
 const FIRST_ROW_EXTRA_GAP = 12;
 const SVG_CACHE = {};
 let introGateActive = Boolean(infoPanel && infoClose);
+let entryNeedsReturnPrompt = false;
+
+function hideEntryReturnPrompt() {
+  if (!entryReturnPrompt) {
+    return;
+  }
+
+  entryReturnPrompt.classList.remove("is-open");
+  entryReturnPrompt.setAttribute("aria-hidden", "true");
+}
+
+function showEntryReturnPrompt() {
+  if (!entryReturnPrompt) {
+    return;
+  }
+
+  entryReturnPrompt.classList.add("is-open");
+  entryReturnPrompt.setAttribute("aria-hidden", "false");
+}
 
 function remindDiscoverButton() {
   if (!infoClose) {
@@ -753,6 +774,9 @@ function closeEntryPanel() {
     return;
   }
 
+  hideEntryReturnPrompt();
+  entryNeedsReturnPrompt = false;
+
   entryPanel.classList.remove("is-open");
   entryPanel.setAttribute("aria-hidden", "true");
 
@@ -784,6 +808,8 @@ function openEntryPanel() {
   }
 
   closeInfoGuide({ force: true });
+  hideEntryReturnPrompt();
+  entryNeedsReturnPrompt = false;
   entryPanel.classList.add("is-open");
   entryPanel.setAttribute("aria-hidden", "false");
   entryBtn.setAttribute("aria-expanded", "true");
@@ -887,6 +913,10 @@ if (entryClose) {
   entryClose.addEventListener("click", closeEntryPanel);
 }
 
+if (entryReturnCloseBtn) {
+  entryReturnCloseBtn.addEventListener("click", closeEntryPanel);
+}
+
 if (infoClose) {
   infoClose.addEventListener("click", () => {
     if (introGateActive) {
@@ -931,6 +961,33 @@ if (entryPanel) {
     }
   });
 }
+
+document.addEventListener("visibilitychange", () => {
+  if (!entryPanel?.classList.contains("is-open")) {
+    return;
+  }
+
+  if (document.hidden) {
+    entryNeedsReturnPrompt = true;
+    return;
+  }
+
+  if (entryNeedsReturnPrompt) {
+    showEntryReturnPrompt();
+    entryNeedsReturnPrompt = false;
+  }
+});
+
+window.addEventListener("focus", () => {
+  if (!entryPanel?.classList.contains("is-open")) {
+    return;
+  }
+
+  if (entryNeedsReturnPrompt) {
+    showEntryReturnPrompt();
+    entryNeedsReturnPrompt = false;
+  }
+});
 
 if (introGateActive && infoPanel && infoToggle) {
   infoPanel.classList.add("is-open");
