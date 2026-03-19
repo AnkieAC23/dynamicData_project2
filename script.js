@@ -114,6 +114,17 @@ function hideEntryReturnPrompt() {
   entryReturnPrompt.setAttribute("aria-hidden", "true");
 }
 
+function remindEntryReturnButton() {
+  if (!entryReturnCloseBtn) {
+    return;
+  }
+
+  entryReturnCloseBtn.classList.remove("is-reminder");
+  // Force reflow so the shake animation can be replayed on each prompt display.
+  void entryReturnCloseBtn.offsetWidth;
+  entryReturnCloseBtn.classList.add("is-reminder");
+}
+
 function showEntryReturnPrompt() {
   if (!entryReturnPrompt) {
     return;
@@ -121,6 +132,7 @@ function showEntryReturnPrompt() {
 
   entryReturnPrompt.classList.add("is-open");
   entryReturnPrompt.setAttribute("aria-hidden", "false");
+  remindEntryReturnButton();
 }
 
 function remindDiscoverButton() {
@@ -138,6 +150,14 @@ if (infoClose) {
   infoClose.addEventListener("animationend", (event) => {
     if (event.animationName === "discover-reminder-shake") {
       infoClose.classList.remove("is-reminder");
+    }
+  });
+}
+
+if (entryReturnCloseBtn) {
+  entryReturnCloseBtn.addEventListener("animationend", (event) => {
+    if (event.animationName === "discover-reminder-shake") {
+      entryReturnCloseBtn.classList.remove("is-reminder");
     }
   });
 }
