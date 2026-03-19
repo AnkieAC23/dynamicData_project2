@@ -72,12 +72,17 @@ const infoToggle = document.getElementById("infoToggle");
 const infoPanel = document.getElementById("infoPanel");
 const infoToggleSymbol = document.getElementById("infoToggleSymbol");
 const infoClose = document.getElementById("infoClose");
+const entryBtn = document.getElementById("entryBtn");
+const entryPanel = document.getElementById("entryPanel");
+const entryClose = document.getElementById("entryClose");
+const entryToggleSymbol = document.getElementById("entryToggleSymbol");
 const zoomRange = document.getElementById("zoomRange");
 const zoomValue = document.getElementById("zoomValue");
 const zoomResetBtn = document.getElementById("zoomResetBtn");
 const loadingOverlay = document.getElementById("loadingOverlay");
 const loadingLabel = document.getElementById("loadingLabel");
 const loadingBarFill = document.getElementById("loadingBarFill");
+const pageBody = document.body;
 let viewportState = null;
 let panZoomController = null;
 let hasLoadedOnce = false;
@@ -92,6 +97,30 @@ let lineTooltipEl = null;
 let interactionsAbortController = null;
 const INITIAL_TITLE_CLEARANCE = 110;
 const SVG_CACHE = {};
+let introGateActive = Boolean(infoPanel && infoClose);
+
+function remindDiscoverButton() {
+  if (!infoClose) {
+    return;
+  }
+
+  infoClose.classList.remove("is-reminder");
+  // Force reflow so the shake animation can restart on repeated reminders.
+  void infoClose.offsetWidth;
+  infoClose.classList.add("is-reminder");
+}
+
+if (infoClose) {
+  infoClose.addEventListener("animationend", (event) => {
+    if (event.animationName === "discover-reminder-shake") {
+      infoClose.classList.remove("is-reminder");
+    }
+  });
+}
+
+if (introGateActive && pageBody) {
+  pageBody.classList.add("intro-locked");
+}
 
 function setStatus(message) {
   if (statusText) {
@@ -636,7 +665,7 @@ function showPointTooltip(pointData, event) {
     resolveTooltipImageUrl(pointData.fallbackImageUrl);
 
   tooltip.innerHTML = `
-    <button class="point-tooltip-close" type="button" aria-label="Close">x</button>
+    <button class="point-tooltip-close" type="button" aria-label="Close">X</button>
     <div class="point-tooltip-name">${escapeHtml(displayName)}</div>
     <div class="point-tooltip-image-wrap">
       ${
@@ -702,12 +731,62 @@ function closeLegend() {
   syncGuideButtonVisibility();
 }
 
-function closeInfoGuide() {
+function closeInfoGuide(options = {}) {
+  const { force = false } = options;
+
+  if (introGateActive && !force) {
+    return;
+  }
+
   if (!infoPanel) return;
   infoPanel.classList.remove("is-open");
   if (infoToggle) infoToggle.setAttribute("aria-expanded", "false");
   if (infoPanel) infoPanel.setAttribute("aria-hidden", "true");
   if (infoToggleSymbol) infoToggleSymbol.textContent = ">";
+}
+
+function closeEntryPanel() {
+  if (!entryPanel) {
+    return;
+  }
+
+  entryPanel.classList.remove("is-open");
+  entryPanel.setAttribute("aria-hidden", "true");
+
+  if (entryBtn) {
+    entryBtn.setAttribute("aria-expanded", "false");
+  }
+
+  if (entryToggleSymbol) {
+    entryToggleSymbol.textContent = ">";
+  }
+}
+
+function openEntryPanel() {
+  if (!entryPanel || !entryBtn) {
+    return;
+  }
+
+  if (introGateActive) {
+    remindDiscoverButton();
+    return;
+  }
+
+  closeInfoGuide({ force: true });
+  entryPanel.classList.add("is-open");
+  entryPanel.setAttribute("aria-hidden", "false");
+  entryBtn.setAttribute("aria-expanded", "true");
+  if (entryToggleSymbol) {
+    entryToggleSymbol.textContent = "X";
+  }
+}
+
+function completeIntroGate() {
+  introGateActive = false;
+  if (pageBody) {
+    pageBody.classList.remove("intro-locked");
+    pageBody.classList.add("intro-complete");
+  }
 }
 
 function toggleLegend() {
@@ -719,7 +798,7 @@ function toggleLegend() {
   legendToggle.setAttribute("aria-expanded", String(isOpen));
   legendPanel.setAttribute("aria-hidden", String(!isOpen));
   if (legendToggleSymbol) {
-    legendToggleSymbol.textContent = isOpen ? "x" : "<";
+    legendToggleSymbol.textContent = isOpen ? "X" : "<";
   }
   if (isOpen) {
     closeSymbolGuide();
@@ -737,7 +816,7 @@ function toggleSymbolGuide() {
   symbolToggle.setAttribute("aria-expanded", String(isOpen));
   symbolPanel.setAttribute("aria-hidden", String(!isOpen));
   if (symbolToggleSymbol) {
-    symbolToggleSymbol.textContent = isOpen ? "x" : "<";
+    symbolToggleSymbol.textContent = isOpen ? "X" : "<";
   }
   if (isOpen) {
     closeLegend();
@@ -752,12 +831,17 @@ function toggleInfoGuide() {
   }
 
   const isOpen = !infoPanel.classList.contains("is-open");
+
+  if (!isOpen && introGateActive) {
+    return;
+  }
+
   infoPanel.classList.toggle("is-open", isOpen);
   infoToggle.setAttribute("aria-expanded", String(isOpen));
   infoPanel.setAttribute("aria-hidden", String(!isOpen));
 
   if (infoToggleSymbol) {
-    infoToggleSymbol.textContent = isOpen ? "x" : ">";
+    infoToggleSymbol.textContent = isOpen ? "X" : ">";
   }
 
   if (isOpen) {
@@ -778,16 +862,74 @@ if (infoToggle) {
   infoToggle.addEventListener("click", toggleInfoGuide);
 }
 
+if (entryBtn) {
+  entryBtn.addEventListener("click", () => {
+    if (entryPanel?.classList.contains("is-open")) {
+      closeEntryPanel();
+      return;
+    }
+    openEntryPanel();
+  });
+}
+
+if (entryClose) {
+  entryClose.addEventListener("click", closeEntryPanel);
+}
+
 if (infoClose) {
-  infoClose.addEventListener("click", closeInfoGuide);
+  infoClose.addEventListener("click", () => {
+    if (introGateActive) {
+      completeIntroGate();
+    }
+    closeInfoGuide({ force: true });
+  });
 }
 
 if (infoPanel) {
+  const infoDrops = Array.from(infoPanel.querySelectorAll(".info-drop"));
+  infoDrops.forEach((drop) => {
+    drop.addEventListener("toggle", () => {
+      if (!drop.open) {
+        return;
+      }
+
+      infoDrops.forEach((otherDrop) => {
+        if (otherDrop !== drop) {
+          otherDrop.removeAttribute("open");
+        }
+      });
+    });
+  });
+
   infoPanel.addEventListener("click", (event) => {
     if (event.target === infoPanel) {
-      closeInfoGuide();
+      if (introGateActive) {
+        remindDiscoverButton();
+        return;
+      }
+
+      remindDiscoverButton();
     }
   });
+}
+
+if (entryPanel) {
+  entryPanel.addEventListener("click", (event) => {
+    if (event.target === entryPanel) {
+      closeEntryPanel();
+    }
+  });
+}
+
+if (introGateActive && infoPanel && infoToggle) {
+  infoPanel.classList.add("is-open");
+  infoPanel.setAttribute("aria-hidden", "false");
+  infoToggle.setAttribute("aria-expanded", "true");
+  if (infoToggleSymbol) {
+    infoToggleSymbol.textContent = "X";
+  }
+} else if (pageBody) {
+  pageBody.classList.add("intro-complete");
 }
 
 syncGuideButtonVisibility();

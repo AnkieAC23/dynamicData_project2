@@ -98,15 +98,79 @@
       </button>
     </aside>
 
+    <aside class="entry-legend" aria-label="Add an entry">
+      <button id="entryBtn" class="info-btn entry-btn" type="button" aria-label="Add an Entry">
+        <span>Add an Entry</span>
+        <span id="entryToggleSymbol" class="legend-symbol" aria-hidden="true">&gt;</span>
+      </button>
+    </aside>
+
+    <div id="entryPanel" class="entry-popup" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Add an Entry form">
+      <div class="entry-popup-card">
+        <div class="entry-popup-header">
+          <h2 class="entry-popup-title">Add an Entry</h2>
+          <button id="entryClose" class="entry-popup-close" type="button" aria-label="Close add an entry form">X</button>
+        </div>
+        <div class="entry-popup-frame-wrap">
+          <iframe
+            id="entryFrame"
+            class="entry-popup-frame"
+            src="https://forms.gle/5BrUPG1FnBCNNXZW9?embedded=true"
+            title="Google Form - Add an Entry"
+            loading="lazy"
+          ></iframe>
+        </div>
+      </div>
+    </div>
+
     <div id="infoPanel" class="info-popup" aria-hidden="true" role="dialog" aria-modal="true" aria-label="How it works details">
       <div class="info-popup-card">
-        <button id="infoClose" class="info-popup-close" type="button" aria-label="Close how it works">x</button>
-        <div class="info-popup-text">
-          <p>Each circle is one person.</p>
-          <p>Line links mean matching Top Artist #1.</p>
-          <p>Click a circle to open details.</p>
-          <p>Hover a line to see the shared artist.</p>
+        <div class="info-popup-header">
+          <h2 class="info-popup-title"><span class="info-popup-title-main">Cönnections</span> <span class="info-popup-title-sub">(feat. Music)</span></h2>
+          <p class="info-popup-copyright">© 2026 Ankie Chen</p>
+          <p class="info-popup-blurb">
+            This visualization shows how listeners are connected through shared music tastes, highlighting
+            patterns in favourite artists, genres and demographics.
+          </p>
         </div>
+
+        <div class="info-popup-text">
+          <details class="info-drop info-drop-how">
+            <summary><strong>How it works</strong></summary>
+              <div class="info-drop-body">
+                <div class="info-drop-body-inner">
+                  <p>Complete the Google Form using the "Add an Entry" button.</p>
+                  <p>
+                    If you are one of the first to submit, please check back later to see more results and discover
+                    your potential connections!
+                  </p>
+                </div>
+              </div>
+          </details>
+
+          <details class="info-drop info-drop-meaning">
+            <summary><strong>What does it mean?</strong></summary>
+              <div class="info-drop-body">
+                <div class="info-drop-body-inner">
+                  <p>Each circle represents a person.</p>
+                  <p>Refer to the Colour Guide and Symbol Guide for their meanings.</p>
+                  <p>Lines connect users who share the same Top Artist #1 (hover over a line to see the shared artist).</p>
+                  <p>Click on a circle to view more details about that user.</p>
+                </div>
+              </div>
+          </details>
+        </div>
+
+        <div class="info-popup-footer-row">
+          <span class="info-spotify-text">Images provided by</span>
+          <a class="info-spotify-credit" href="https://open.spotify.com/" target="_blank" rel="noopener noreferrer" aria-label="Open Spotify">
+            <img src="images/logo.png" alt="Spotify logo" class="info-spotify-logo" />
+          </a>
+          <span class="info-footer-dot" aria-hidden="true">•</span>
+          <p class="info-project-note">Student project for VDES39915</p>
+        </div>
+
+        <button id="infoClose" class="info-popup-action" type="button" aria-label="Close how it works">Discover Connections!</button>
       </div>
     </div>
 
