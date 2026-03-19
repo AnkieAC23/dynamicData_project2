@@ -132,7 +132,6 @@ function showEntryReturnPrompt() {
 
   entryReturnPrompt.classList.add("is-open");
   entryReturnPrompt.setAttribute("aria-hidden", "false");
-  remindEntryReturnButton();
 }
 
 function remindDiscoverButton() {
@@ -976,6 +975,11 @@ if (infoPanel) {
 
 if (entryPanel) {
   entryPanel.addEventListener("click", (event) => {
+    if (entryReturnPrompt?.classList.contains("is-open") && event.target === entryPanel) {
+      remindEntryReturnButton();
+      return;
+    }
+
     if (event.target === entryPanel) {
       closeEntryPanel();
     }
