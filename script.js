@@ -339,8 +339,19 @@ function getMockRows(totalRows) {
     for (let j = 0; j < groupSize; j += 1) {
       const genre = genreLabels[(artistIndex + j * 3 + cursor) % genreLabels.length];
       const gender = genderLabels[(artistIndex * 2 + j + cursor) % genderLabels.length];
+      const topArtist2 = MOCK_ARTISTS[(artistIndex + j + 3) % MOCK_ARTISTS.length];
+      const topArtist3 = MOCK_ARTISTS[(artistIndex + j * 2 + 7) % MOCK_ARTISTS.length];
+
+      // Cycle artist slots so some matches happen across different rank positions.
+      const slotCycle = cursor % 3;
+      const artist1 = slotCycle === 0 ? artist : slotCycle === 1 ? topArtist3 : topArtist2;
+      const artist2 = slotCycle === 0 ? topArtist2 : slotCycle === 1 ? artist : topArtist3;
+      const artist3 = slotCycle === 0 ? topArtist3 : slotCycle === 1 ? topArtist2 : artist;
+
       rows.push({
-        "Top Artist #1": artist,
+        "Top Artist #1": artist1,
+        "Top Artist #2": artist2,
+        "Top Artist #3": artist3,
         "Most Listened Genre": genre,
         Gender: gender,
       });
@@ -617,7 +628,7 @@ function positionLineTooltip(clientX, clientY) {
   tooltip.style.top = `${Math.round(y)}px`;
 }
 
-function showLineTooltip(artistName, event) {
+function showLineTooltip(artistName, matchDetail, event) {
   const tooltip = ensureLineTooltip();
   tooltip.textContent = `Connected by: ${artistName || "Unknown artist"}`;
   tooltip.classList.remove("is-hidden");
@@ -693,6 +704,46 @@ function pickLooseRowValue(row, predicate) {
     }
   }
   return "";
+}
+
+function buildArtistSlotLookup(entry) {
+  const slotDefs = [
+    { rank: 1, value: entry.artist },
+    { rank: 2, value: entry.topArtist2 },
+    { rank: 3, value: entry.topArtist3 },
+  ];
+
+  const lookup = new Map();
+
+  slotDefs.forEach(({ rank, value }) => {
+    const artistName = String(value || "").trim();
+    if (!artistName) {
+      return;
+    }
+
+    const key = artistName.toLowerCase();
+    if (!lookup.has(key)) {
+      lookup.set(key, {
+        artistName,
+        ranks: [rank],
+      });
+      return;
+    }
+
+    const existing = lookup.get(key);
+    if (!existing.ranks.includes(rank)) {
+      existing.ranks.push(rank);
+      existing.ranks.sort((a, b) => a - b);
+    }
+  });
+
+  return lookup;
+}
+
+function getMatchDetail(fromRanks, toRanks) {
+  const left = fromRanks.map((rank) => `Top Artist #${rank}`).join("/");
+  const right = toRanks.map((rank) => `Top Artist #${rank}`).join("/");
+  return `${left} ↔ ${right}`;
 }
 
 function showPointTooltip(pointData, event) {
@@ -1235,13 +1286,17 @@ function attachRevealInteractions() {
   }
 
   const linkGroups = Array.from(document.querySelectorAll(".link-group"));
-  let activeArtistKey = null;
+  let activeArtistKeys = [];
   let activeGroup = null;
-  let hoveredArtistKey = null;
+  let hoveredArtistKeys = [];
 
   function setRevealState(artistKey, shouldReveal) {
     pointGroups.forEach((group) => {
-      if (group.dataset.artistKey === artistKey) {
+      const artistKeys = (group.dataset.artistKeys || "")
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean);
+      if (artistKeys.includes(artistKey)) {
         group.classList.toggle("is-revealed", shouldReveal);
       }
     });
@@ -1252,16 +1307,22 @@ function attachRevealInteractions() {
     });
   }
 
+  function setRevealStateForKeys(artistKeys, shouldReveal) {
+    artistKeys.forEach((artistKey) => {
+      setRevealState(artistKey, shouldReveal);
+    });
+  }
+
   function clearActiveSelection() {
-    if (activeArtistKey) {
-      setRevealState(activeArtistKey, false);
+    if (activeArtistKeys.length) {
+      setRevealStateForKeys(activeArtistKeys, false);
     }
-    activeArtistKey = null;
+    activeArtistKeys = [];
     activeGroup = null;
     hidePointTooltip();
     hideLineTooltip();
-    if (hoveredArtistKey) {
-      setRevealState(hoveredArtistKey, true);
+    if (hoveredArtistKeys.length) {
+      setRevealStateForKeys(hoveredArtistKeys, true);
     }
   }
 
@@ -1278,8 +1339,12 @@ function attachRevealInteractions() {
   );
 
   pointGroups.forEach((group) => {
-    const artistKey = group.dataset.artistKey;
-    if (!artistKey) {
+    const artistKeys = (group.dataset.artistKeys || "")
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean);
+
+    if (!artistKeys.length) {
       return;
     }
 
@@ -1306,9 +1371,9 @@ function attachRevealInteractions() {
     group.addEventListener(
       "pointerenter",
       () => {
-        hoveredArtistKey = artistKey;
-        if (!activeArtistKey) {
-          setRevealState(artistKey, true);
+        hoveredArtistKeys = artistKeys;
+        if (!activeArtistKeys.length) {
+          setRevealStateForKeys(artistKeys, true);
         }
       },
       { signal }
@@ -1317,11 +1382,9 @@ function attachRevealInteractions() {
     group.addEventListener(
       "pointerleave",
       () => {
-        if (hoveredArtistKey === artistKey) {
-          hoveredArtistKey = null;
-        }
-        if (!activeArtistKey) {
-          setRevealState(artistKey, false);
+        hoveredArtistKeys = [];
+        if (!activeArtistKeys.length) {
+          setRevealStateForKeys(artistKeys, false);
         }
       },
       { signal }
@@ -1338,9 +1401,9 @@ function attachRevealInteractions() {
         }
 
         clearActiveSelection();
-        activeArtistKey = artistKey;
+        activeArtistKeys = artistKeys;
         activeGroup = group;
-        setRevealState(artistKey, true);
+        setRevealStateForKeys(artistKeys, true);
         showPointTooltip(pointData, event);
       },
       { signal }
@@ -1349,11 +1412,12 @@ function attachRevealInteractions() {
 
   linkGroups.forEach((link) => {
     const artistName = link.dataset.artistName || "";
+    const matchDetail = link.dataset.matchDetail || "";
 
     link.addEventListener(
       "pointerenter",
       (event) => {
-        showLineTooltip(artistName, event);
+        showLineTooltip(artistName, matchDetail, event);
       },
       { signal }
     );
@@ -1447,7 +1511,7 @@ function renderRows(rows) {
     .filter((entry) => entry.artist);
 
   if (!entries.length) {
-    responsesContainer.innerHTML = '<p class="empty">No Top Artist #1 data yet.</p>';
+    responsesContainer.innerHTML = '<p class="empty">No Top Artist data yet.</p>';
     return;
   }
 
@@ -1472,7 +1536,11 @@ function renderRows(rows) {
     const row = Math.floor(index / cols);
     const offsetX = row % 2 === 0 ? 0 : xSpacing / 2;
 
+    const artistSlots = buildArtistSlotLookup(entry);
+    const artistKeys = Array.from(artistSlots.keys());
+
     return {
+      id: index,
       displayName: entry.displayName,
       artist: entry.artist,
       genre: entry.genre || "Other",
@@ -1486,40 +1554,58 @@ function renderRows(rows) {
       topArtist1ImageUrl: entry.topArtist1ImageUrl || entry.rawTopArtist1ImageUrl,
       topArtist1SpotifyUrl: entry.topArtist1SpotifyUrl,
       imageSrc: getParticipantImage(entry.gender),
-      normalizedArtist: entry.artist.toLowerCase(),
+      artistKeys,
+      artistKeySet: new Set(artistKeys),
+      artistSlots,
       x: xStart + col * xSpacing + offsetX,
       y: yStart + row * ySpacing,
     };
   });
 
-  const groupedByArtist = points.reduce((map, point) => {
-    const existing = map.get(point.normalizedArtist) || [];
-    existing.push(point);
-    map.set(point.normalizedArtist, existing);
-    return map;
-  }, new Map());
+  const connectionSegments = [];
 
-  const linesHtml = Array.from(groupedByArtist.values())
-    .filter((group) => group.length > 1)
-    .map((group) => {
-      let segments = "";
-      const artistName = group[0].artist;
-      const artistNameEscaped = escapeHtml(artistName);
-      const routedGroup = orderGroupPointsForFlow(group, artistName);
+  for (let i = 0; i < points.length; i += 1) {
+    for (let j = i + 1; j < points.length; j += 1) {
+      const from = points[i];
+      const to = points[j];
+      const sharedArtistKeys = from.artistKeys.filter((artistKey) => to.artistKeySet.has(artistKey));
 
-      for (let i = 1; i < routedGroup.length; i += 1) {
-        const from = routedGroup[i - 1];
-        const to = routedGroup[i];
-        const d = createScribbleConnectionPath(from, to, points, `${artistName}|${i}`);
-        segments += `
-          <g class="link-group" data-artist-key="${escapeHtml(group[0].normalizedArtist)}" data-artist-name="${artistNameEscaped}">
-            <path d="${d}" class="link-line-scribble" aria-hidden="true"></path>
-            <path d="${d}" class="link-hit"></path>
+      sharedArtistKeys.forEach((artistKey, sharedIndex) => {
+        const fromArtistSlot = from.artistSlots.get(artistKey);
+        const toArtistSlot = to.artistSlots.get(artistKey);
+        const artistName =
+          fromArtistSlot?.artistName ||
+          toArtistSlot?.artistName ||
+          "Unknown artist";
+        const fromRanks = fromArtistSlot?.ranks || [];
+        const toRanks = toArtistSlot?.ranks || [];
+
+        connectionSegments.push({
+          artistKey,
+          artistName,
+          matchDetail: getMatchDetail(fromRanks, toRanks),
+          d: createScribbleConnectionPath(
+            from,
+            to,
+            points,
+            `${artistKey}|${from.id}|${to.id}|${sharedIndex}`
+          ),
+        });
+      });
+    }
+  }
+
+  const linesHtml = connectionSegments
+    .map((segment) => {
+      const artistKeyEscaped = escapeHtml(segment.artistKey);
+      const artistNameEscaped = escapeHtml(segment.artistName);
+      const matchDetailEscaped = escapeHtml(segment.matchDetail);
+      return `
+          <g class="link-group" data-artist-key="${artistKeyEscaped}" data-artist-name="${artistNameEscaped}" data-match-detail="${matchDetailEscaped}">
+            <path d="${segment.d}" class="link-line-scribble" aria-hidden="true"></path>
+            <path d="${segment.d}" class="link-hit"></path>
           </g>
         `;
-      }
-
-      return segments;
     })
     .join("");
 
@@ -1537,10 +1623,13 @@ function renderRows(rows) {
     .map(
       (point, index) => {
         const ringColor = getGenreColor(point.genre);
+        const primaryArtistKey = point.artistKeys[0] || "";
+        const artistKeysAttr = point.artistKeys.join(",");
         return `
       <g
         class="point-group"
-        data-artist-key="${escapeHtml(point.normalizedArtist)}"
+        data-artist-key="${escapeHtml(primaryArtistKey)}"
+        data-artist-keys="${escapeHtml(artistKeysAttr)}"
         data-display-name="${escapeHtml(point.displayName)}"
         data-artist-name="${escapeHtml(point.artist)}"
         data-avatar-src="${escapeHtml(point.imageSrc)}"
@@ -1570,8 +1659,8 @@ function renderRows(rows) {
     .join("");
 
   responsesContainer.innerHTML = `
-    <div class="plot" aria-label="Top Artist #1 data points">
-      <svg id="plotSvg" class="plot-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Top Artist #1 data circles with duplicate connections">
+    <div class="plot" aria-label="Top Artist data points">
+      <svg id="plotSvg" class="plot-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Top Artist data circles with shared-artist connections">
         <defs>
           ${defsHtml}
         </defs>
@@ -1655,7 +1744,7 @@ async function fetchAndRender() {
     }
   }
 
-  responsesContainer.innerHTML = '<p class="empty">Unable to load Top Artist #1 data.</p>';
+  responsesContainer.innerHTML = '<p class="empty">Unable to load Top Artist data.</p>';
   if (lastError) {
     setStatus(`Failed to load data: ${lastError.message}`);
     setLoadingState(true, "Finding your music connections...");
