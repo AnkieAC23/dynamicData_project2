@@ -1570,6 +1570,14 @@ function renderRows(rows) {
       const to = points[j];
       const sharedArtistKeys = from.artistKeys.filter((artistKey) => to.artistKeySet.has(artistKey));
 
+      const sharedArtistNamesLabel = sharedArtistKeys
+        .map((artistKey) => {
+          const fromArtistSlot = from.artistSlots.get(artistKey);
+          const toArtistSlot = to.artistSlots.get(artistKey);
+          return fromArtistSlot?.artistName || toArtistSlot?.artistName || "Unknown artist";
+        })
+        .join(", ");
+
       sharedArtistKeys.forEach((artistKey, sharedIndex) => {
         const fromArtistSlot = from.artistSlots.get(artistKey);
         const toArtistSlot = to.artistSlots.get(artistKey);
@@ -1582,7 +1590,7 @@ function renderRows(rows) {
 
         connectionSegments.push({
           artistKey,
-          artistName,
+          artistName: sharedArtistNamesLabel || artistName,
           matchDetail: getMatchDetail(fromRanks, toRanks),
           d: createScribbleConnectionPath(
             from,
