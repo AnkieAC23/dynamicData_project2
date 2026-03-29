@@ -8,6 +8,9 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
+    <button id="togglePanelBtn" class="toggle-panel-btn" aria-label="Hide right panel">
+      <img id="togglePanelIcon" src="images/invisible.svg" alt="Hide panel" />
+    </button>
     <div id="loadingOverlay" class="loading-overlay" aria-live="polite">
       <div class="loading-card">
         <p id="loadingLabel" class="loading-title">Finding your music connections...</p>
@@ -17,6 +20,7 @@
       </div>
     </div>
 
+    <div class="hero-bg" aria-hidden="true"></div>
     <header class="hero-copy" aria-label="Project heading">
       <h1>
         <span class="title-main">Cönnections</span>
@@ -84,26 +88,35 @@
       </div>
     </aside>
 
-    <aside class="info-legend" aria-label="How it works">
-      <button
-        id="infoToggle"
-        class="info-btn"
-        type="button"
-        aria-label="How it works"
-        aria-expanded="false"
-        aria-controls="infoPanel"
-      >
-        <span>How it works</span>
-        <span id="infoToggleSymbol" class="legend-symbol" aria-hidden="true">&gt;</span>
-      </button>
-    </aside>
-
-    <aside class="entry-legend" aria-label="Add an entry">
-      <button id="entryBtn" class="info-btn entry-btn" type="button" aria-label="Add an Entry">
-        <span>Add an Entry</span>
-        <span id="entryToggleSymbol" class="legend-symbol" aria-hidden="true">&gt;</span>
-      </button>
-    </aside>
+    <div class="right-controls">
+      <aside class="entry-legend" aria-label="Add an entry">
+        <button id="entryBtn" class="info-btn entry-btn" type="button" aria-label="Add an Entry">
+          <span id="entryToggleSymbol" class="legend-symbol" aria-hidden="true">&lt;</span>
+          <span>Add an Entry</span>
+        </button>
+      </aside>
+      <aside class="info-legend" aria-label="How it works">
+        <button
+          id="infoToggle"
+          class="info-btn"
+          type="button"
+          aria-label="How it works"
+          aria-expanded="false"
+          aria-controls="infoPanel"
+        >
+          <span id="infoToggleSymbol" class="legend-symbol" aria-hidden="true">&lt;</span>
+          <span>How it works</span>
+        </button>
+      </aside>
+      <div class="zoom-controls" aria-label="Zoom controls">
+        <button id="zoomResetBtn" class="zoom-btn zoom-reset" type="button" aria-label="Reset zoom">&#x21bb;</button>
+        <div class="zoom-slider-wrap">
+          <button id="zoomOutBtn" class="zoom-btn" type="button" aria-label="Zoom out">−</button>
+          <span id="zoomValue" class="zoom-value">100%</span>
+          <button id="zoomInBtn" class="zoom-btn" type="button" aria-label="Zoom in">+</button>
+        </div>
+      </div>
+    </div>
 
     <div id="entryPanel" class="entry-popup" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Add an Entry form">
       <div class="entry-popup-card">
@@ -133,8 +146,7 @@
           <h2 class="info-popup-title"><span class="info-popup-title-main">Cönnections</span> <span class="info-popup-title-sub">(feat. Music)</span></h2>
           <p class="info-popup-copyright">© 2026 Ankie Chen</p>
           <p class="info-popup-blurb">
-            This visualization shows how listeners are connected through shared music tastes, highlighting
-            patterns in favourite artists, genres and demographics.
+            See how your music taste connects you to others. This visualization creates connections between listeners based on favourite artists, genres and demographics.
           </p>
         </div>
 
@@ -182,13 +194,7 @@
       </div>
     </div>
 
-    <div class="zoom-controls" aria-label="Zoom controls">
-      <label class="zoom-slider-wrap" for="zoomRange">
-        <span id="zoomValue" class="zoom-value">100%</span>
-        <input id="zoomRange" class="zoom-range" type="range" min="100" max="500" step="1" value="100" aria-label="Zoom level" />
-      </label>
-      <button id="zoomResetBtn" class="zoom-btn zoom-reset" type="button" aria-label="Reset zoom">&#x21bb;</button>
-    </div>
+
 
     <script src="script.js"></script>
   </body>

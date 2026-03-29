@@ -1,6 +1,52 @@
+// Toggle right panel show/hide logic
+const togglePanelBtn = document.getElementById("togglePanelBtn");
+const togglePanelIcon = document.getElementById("togglePanelIcon");
+const rightControls = document.querySelector('.right-controls');
+let panelVisible = true;
+if (togglePanelBtn && togglePanelIcon && rightControls) {
+  // Dynamically position the toggle button between Symbol Guide and Add an Entry
+  function positionTogglePanelBtn() {
+    const symbolBtn = document.getElementById('symbolToggle');
+    const entryBtn = document.getElementById('entryBtn');
+    if (symbolBtn && entryBtn && togglePanelBtn) {
+      const symbolRect = symbolBtn.getBoundingClientRect();
+      const entryRect = entryBtn.getBoundingClientRect();
+      const midY = (symbolRect.top + entryRect.top + entryRect.height) / 2 - togglePanelBtn.offsetHeight / 2;
+      togglePanelBtn.style.top = `${midY}px`;
+    }
+  }
+  window.addEventListener('resize', positionTogglePanelBtn);
+  window.addEventListener('DOMContentLoaded', positionTogglePanelBtn);
+  setTimeout(positionTogglePanelBtn, 200); // In case of late layout
+
+  togglePanelBtn.addEventListener('click', () => {
+    panelVisible = !panelVisible;
+    // Hide/show all right controls and guides
+    rightControls.style.display = panelVisible ? '' : 'none';
+    if (symbolContainer) symbolContainer.style.display = panelVisible ? '' : 'none';
+    if (legendContainer) legendContainer.style.display = panelVisible ? '' : 'none';
+    togglePanelIcon.src = panelVisible ? 'images/invisible.svg' : 'images/visible.svg';
+    togglePanelBtn.setAttribute('aria-label', panelVisible ? 'Hide right panel' : 'Show right panel');
+    // Also close all open guides/panels when hiding
+    if (!panelVisible) {
+      if (symbolContainer) symbolContainer.classList.remove('is-open');
+      if (symbolToggle) symbolToggle.setAttribute('aria-expanded', 'false');
+      if (symbolPanel) symbolPanel.setAttribute('aria-hidden', 'true');
+      if (symbolToggleSymbol) symbolToggleSymbol.textContent = '<';
+      if (legendContainer) legendContainer.classList.remove('is-open');
+      if (legendToggle) legendToggle.setAttribute('aria-expanded', 'false');
+      if (legendPanel) legendPanel.setAttribute('aria-hidden', 'true');
+      if (legendToggleSymbol) legendToggleSymbol.textContent = '<';
+      if (infoPanel) infoPanel.classList.remove('is-open');
+      if (infoToggle) infoToggle.setAttribute('aria-expanded', 'false');
+      if (infoPanel) infoPanel.setAttribute('aria-hidden', 'true');
+      if (infoToggleSymbol) infoToggleSymbol.textContent = '<';
+    }
+  });
+}
 const API_URLS = ["/api/responses", "http://localhost:3000/api/responses"];
 const POLL_INTERVAL_MS = 5000;
-const BASELINE_ZOOM = 1.43;
+const BASELINE_ZOOM = 1.8; // 100% is now slightly more zoomed in
 const GENRE_COLORS = {
   Pop: "#ff6f91",
   "K-pop": "#f7b8a8",
@@ -100,7 +146,7 @@ let pointTooltipEl = null;
 let lineTooltipEl = null;
 let interactionsAbortController = null;
 const INITIAL_TITLE_CLEARANCE = 110;
-const FIRST_ROW_EXTRA_GAP = 12;
+const FIRST_ROW_EXTRA_GAP = 120;
 const SVG_CACHE = {};
 let introGateActive = Boolean(infoPanel && infoClose);
 let entryNeedsReturnPrompt = false;
@@ -805,6 +851,13 @@ function syncGuideButtonVisibility() {
     legendToggle.hidden = isSymbolOpen;
     legendToggle.style.display = isSymbolOpen ? "none" : "flex";
   }
+
+  // Hide all right controls and toggle panel button when either guide is open
+  const rightControls = document.querySelector('.right-controls');
+  const togglePanelBtn = document.getElementById('togglePanelBtn');
+  const anyGuideOpen = isLegendOpen || isSymbolOpen;
+  if (rightControls) rightControls.style.display = anyGuideOpen ? 'none' : '';
+  if (togglePanelBtn) togglePanelBtn.style.display = anyGuideOpen ? 'none' : '';
 }
 
 function closeSymbolGuide() {
@@ -836,7 +889,7 @@ function closeInfoGuide(options = {}) {
   infoPanel.classList.remove("is-open");
   if (infoToggle) infoToggle.setAttribute("aria-expanded", "false");
   if (infoPanel) infoPanel.setAttribute("aria-hidden", "true");
-  if (infoToggleSymbol) infoToggleSymbol.textContent = ">";
+  if (infoToggleSymbol) infoToggleSymbol.textContent = "<";
 }
 
 function closeEntryPanel() {
@@ -855,7 +908,7 @@ function closeEntryPanel() {
   }
 
   if (entryToggleSymbol) {
-    entryToggleSymbol.textContent = ">";
+    entryToggleSymbol.textContent = "<";
   }
 
   if (entryFrame && entryFrameInitialSrc) {
@@ -948,7 +1001,7 @@ function toggleInfoGuide() {
   infoPanel.setAttribute("aria-hidden", String(!isOpen));
 
   if (infoToggleSymbol) {
-    infoToggleSymbol.textContent = isOpen ? "X" : ">";
+    infoToggleSymbol.textContent = isOpen ? "X" : "<";
   }
 
   if (isOpen) {
@@ -1466,10 +1519,28 @@ if (zoomRange) {
   });
 }
 
+
 if (zoomResetBtn) {
   zoomResetBtn.addEventListener("click", () => {
     if (panZoomController) {
       panZoomController.reset();
+    }
+  });
+}
+
+const zoomInBtn = document.getElementById("zoomInBtn");
+const zoomOutBtn = document.getElementById("zoomOutBtn");
+if (zoomInBtn) {
+  zoomInBtn.addEventListener("click", () => {
+    if (panZoomController) {
+      panZoomController.zoomIn();
+    }
+  });
+}
+if (zoomOutBtn) {
+  zoomOutBtn.addEventListener("click", () => {
+    if (panZoomController) {
+      panZoomController.zoomOut();
     }
   });
 }
@@ -1518,7 +1589,8 @@ function renderRows(rows) {
   const padding = 72;
   const xSpacing = 98;
   const ySpacing = 84;
-  const cols = Math.max(3, Math.ceil(Math.sqrt(entries.length * 1.25)));
+  // Cap each row to a maximum of 8 data points
+  const cols = Math.min(8, Math.max(3, Math.ceil(Math.sqrt(entries.length * 1.25))));
   const rowsCount = Math.ceil(entries.length / cols);
   const usableWidth = (cols - 1) * xSpacing + xSpacing / 2;
   const usableHeight = (rowsCount - 1) * ySpacing;
@@ -1563,12 +1635,35 @@ function renderRows(rows) {
   });
 
   const connectionSegments = [];
+  const mockMaxConnectionsPerPoint = 3;
+  const connectionCountsByPoint = new Map();
+
+  function getConnectionCount(pointId) {
+    return connectionCountsByPoint.get(pointId) || 0;
+  }
+
+  function addConnectionCount(pointId) {
+    connectionCountsByPoint.set(pointId, getConnectionCount(pointId) + 1);
+  }
 
   for (let i = 0; i < points.length; i += 1) {
     for (let j = i + 1; j < points.length; j += 1) {
       const from = points[i];
       const to = points[j];
-      const sharedArtistKeys = from.artistKeys.filter((artistKey) => to.artistKeySet.has(artistKey));
+      const sharedArtistKeysAll = from.artistKeys.filter((artistKey) => to.artistKeySet.has(artistKey));
+      if (!sharedArtistKeysAll.length) {
+        continue;
+      }
+
+      if (
+        USE_MOCK_DATA &&
+        (getConnectionCount(from.id) >= mockMaxConnectionsPerPoint ||
+          getConnectionCount(to.id) >= mockMaxConnectionsPerPoint)
+      ) {
+        continue;
+      }
+
+      const sharedArtistKeys = USE_MOCK_DATA ? sharedArtistKeysAll.slice(0, 1) : sharedArtistKeysAll;
 
       const sharedArtistNamesLabel = sharedArtistKeys
         .map((artistKey) => {
@@ -1579,6 +1674,14 @@ function renderRows(rows) {
         .join(", ");
 
       sharedArtistKeys.forEach((artistKey, sharedIndex) => {
+        if (
+          USE_MOCK_DATA &&
+          (getConnectionCount(from.id) >= mockMaxConnectionsPerPoint ||
+            getConnectionCount(to.id) >= mockMaxConnectionsPerPoint)
+        ) {
+          return;
+        }
+
         const fromArtistSlot = from.artistSlots.get(artistKey);
         const toArtistSlot = to.artistSlots.get(artistKey);
         const artistName =
@@ -1599,6 +1702,11 @@ function renderRows(rows) {
             `${artistKey}|${from.id}|${to.id}|${sharedIndex}`
           ),
         });
+
+        if (USE_MOCK_DATA) {
+          addConnectionCount(from.id);
+          addConnectionCount(to.id);
+        }
       });
     }
   }

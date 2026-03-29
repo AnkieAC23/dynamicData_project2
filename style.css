@@ -1,3 +1,65 @@
+/* Full-width background for the hero title */
+.hero-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  min-height: 120px;
+  z-index: 10;
+  background: linear-gradient(180deg, rgba(2,18,27,1.0) 0%, rgba(2,18,27,0.92) 30%, rgba(2,18,27,0.0) 100%);
+  box-shadow: 0 2px 12px 0 rgba(2,6,23,0.10);
+  pointer-events: none;
+  border-radius: 0 0 24px 24px;
+}
+/* Toggle panel button */
+.toggle-panel-btn {
+  position: fixed;
+  right: 0;
+  z-index: 30;
+  background: linear-gradient(rgba(252, 249, 240, 0.14), rgba(252, 249, 240, 0.14)), #02121b;
+  color: rgba(252, 249, 240, 0.68);
+  font-size: 0.8rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(2, 6, 23, 0.25);
+  border-radius: 12px 0 0 12px;
+  height: 38px;
+  min-width: 70px;
+  width: 70px;
+  padding: 0 18px 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  transition: background 140ms, color 140ms, box-shadow 150ms;
+  /* Top will be set dynamically by JS for perfect centering */
+  top: 0;
+}
+.toggle-panel-btn img {
+  width: 28px;
+  height: 28px;
+  /* Use filter to color SVG to match rgba(252, 249, 240, 0.68) */
+  filter: brightness(0) saturate(100%) invert(92%) sepia(7%) saturate(0%) hue-rotate(180deg) brightness(90%) contrast(90%);
+  color: rgba(252, 249, 240, 0.68);
+}
+/* Right controls stacking */
+.right-controls {
+  position: fixed;
+  right: 0;
+  bottom: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+  z-index: 22;
+}
+
+.right-controls .entry-legend,
+.right-controls .info-legend,
+.right-controls .zoom-controls {
+  position: static;
+  margin: 0;
+}
 * {
   box-sizing: border-box;
 }
@@ -31,6 +93,7 @@ body {
 .loading-card {
   width: min(360px, calc(100vw - 48px));
   padding: 18px 18px 16px;
+  margin-top: -60px;
   border: 1px solid rgba(252, 249, 240, 0.12);
   border-radius: 16px;
   background: rgba(2, 18, 27, 0.72);
@@ -70,14 +133,27 @@ main {
 
 .hero-copy {
   position: fixed;
-  top: 28px;
+  top: 14px;
   left: 50%;
-  transform: translateX(-50%) translateY(-22px);
-  width: auto;
+  transform: translateX(-50%, 0);
+  width: max-content;
   text-align: center;
-  z-index: 15;
+  z-index: 20;
   opacity: 0;
   animation: none;
+  background: none;
+  pointer-events: none;
+  border-radius: 18px;
+}
+/* Ensure the title text is centered and padded inside the background */
+.hero-copy h1 {
+  margin: 0;
+  padding: 0.5em 2.5em;
+  border-radius: 18px;
+  background: none;
+  width: max-content;
+  max-width: 90vw;
+  min-width: 0;
 }
 
 body.intro-complete .hero-copy {
@@ -456,8 +532,15 @@ body.intro-complete .hero-copy {
   z-index: 20;
 }
 
+.genre-legend .legend-panel,
+.symbol-legend .legend-panel {
+  padding: 0;
+  border-radius: 12px 0 0 12px;
+}
+
 .legend-toggle {
   border: none;
+  outline: none;
   padding: 10px 12px;
   width: 150px;
   display: flex;
@@ -466,8 +549,8 @@ body.intro-complete .hero-copy {
   gap: 10px;
   margin: 0 0 6px auto;
   border-radius: 12px 0 0 12px;
-  background: #fcf9f0;
-  color: #0f172a;
+  background: linear-gradient(rgba(252, 249, 240, 0.14), rgba(252, 249, 240, 0.14)), #02121b;
+  color: rgba(252, 249, 240, 0.68);
   font-size: 0.8rem;
   font-weight: 700;
   cursor: pointer;
@@ -477,6 +560,8 @@ body.intro-complete .hero-copy {
 
 .genre-legend .legend-toggle:hover,
 .symbol-legend .legend-toggle:hover {
+  background: #fcf9f0;
+  color: #0f172a;
   width: 162px;
   box-shadow: 0 5px 16px rgba(2, 6, 23, 0.28);
 }
@@ -603,27 +688,32 @@ body.symbol-open #legendToggle {
 }
 
 .zoom-controls {
-  position: fixed;
-  left: 14px;
-  bottom: 14px;
+  position: static;
+  margin-top: 10px;
   display: flex;
   align-items: center;
   gap: 6px;
   z-index: 22;
+  padding: 0;
+  border-radius: 10px;
 }
 
 .info-legend {
   position: fixed;
-  left: 0;
+  right: 0;
   bottom: 58px;
   z-index: 22;
+  padding: 0;
+  border-radius: 12px 0 0 12px;
 }
 
 .entry-legend {
   position: fixed;
-  left: 0;
+  right: 0;
   bottom: 104px;
   z-index: 22;
+  padding: 0;
+  border-radius: 12px 0 0 12px;
 }
 
 .entry-popup {
@@ -676,6 +766,7 @@ body.symbol-open #legendToggle {
 
 .entry-popup-close {
   border: none;
+  outline: none;
   width: 30px;
   height: 30px;
   border-radius: 999px;
@@ -744,6 +835,7 @@ body.symbol-open #legendToggle {
 
 .entry-return-btn {
   border: 2px solid transparent;
+  outline: none;
   border-radius: 999px;
   padding: 7px 18px;
   background: #0f172a;
@@ -989,6 +1081,7 @@ body.symbol-open #legendToggle {
   justify-self: center;
   margin-top: -4px;
   border: 2px solid transparent;
+  outline: none;
   border-radius: 999px;
   padding: 7px 18px;
   background: #0f172a;
@@ -1020,17 +1113,18 @@ body.symbol-open #legendToggle {
 
 .info-btn {
   position: relative;
-  left: -20px;
+  right: -20px;
   border: none;
-  border-radius: 0 12px 12px 0;
+  outline: none;
+  border-radius: 12px 0 0 12px;
   width: 170px;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 10px;
   padding: 10px 12px;
-  background: #fcf9f0;
-  color: #0f172a;
+  background: linear-gradient(rgba(252, 249, 240, 0.14), rgba(252, 249, 240, 0.14)), #02121b;
+  color: rgba(252, 249, 240, 0.68);
   font-size: 0.8rem;
   font-weight: 700;
   line-height: 1.2;
@@ -1041,18 +1135,20 @@ body.symbol-open #legendToggle {
   transition: transform 150ms ease, box-shadow 150ms ease;
 }
 
-.info-btn span:first-child {
-  text-align: right;
-  transform: translateX(-14px);
+.info-btn span:last-child {
+  text-align: left;
+  transform: none;
 }
 
 .info-btn:hover {
-  transform: translateX(12px);
+  background: #fcf9f0;
+  color: #0f172a;
+  transform: translateX(-12px);
   box-shadow: 0 5px 16px rgba(2, 6, 23, 0.28);
 }
 
 .info-btn:active {
-  transform: translateX(7px);
+  transform: translateX(-7px);
 }
 
 .entry-btn {
@@ -1062,11 +1158,49 @@ body.symbol-open #legendToggle {
 .zoom-slider-wrap {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
-  border-radius: 10px;
-  background: rgba(252, 249, 240, 0.92);
-  box-shadow: 0 2px 8px rgba(2, 6, 23, 0.28);
+  gap: 6px;
+  padding: 0 8px;
+  height: 36px;
+  border-radius: 10px 0 0 10px;
+  background: linear-gradient(rgba(252, 249, 240, 0.14), rgba(252, 249, 240, 0.14)), #02121b;
+  color: rgba(252, 249, 240, 0.68);
+  font-size: 0.8rem;
+  font-weight: 700;
+  width: 110px;
+  box-sizing: border-box;
+  box-shadow: 0 2px 8px rgba(2, 6, 23, 0.25);
+  border: none;
+}
+.zoom-slider-wrap .zoom-btn {
+  width: 28px;
+  height: 28px;
+  font-size: 1rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  color: #fcf9f0;
+  border: none;
+  box-shadow: none;
+  margin: 0;
+  transition: background 140ms, color 140ms;
+  padding: 0 2px !important;
+}
+.zoom-slider-wrap .zoom-btn:hover {
+  background: #fcf9f0;
+  color: #02121b;
+  padding: 0 1px !important;
+}
+.zoom-slider-wrap .zoom-value {
+  color: rgba(252, 249, 240, 0.68);
+  font-size: 0.8rem;
+  font-weight: 700;
+  min-width: 36px;
+  max-width: 36px;
+  width: 36px;
+  text-align: center;
+  display: inline-block;
 }
 
 .zoom-value {
@@ -1086,9 +1220,10 @@ body.symbol-open #legendToggle {
   width: 32px;
   height: 32px;
   border: none;
+  outline: none;
   border-radius: 9px;
-  background: #fcf9f0;
-  color: #0f172a;
+  background: linear-gradient(rgba(252, 249, 240, 0.14), rgba(252, 249, 240, 0.14)), #02121b;
+  color: rgba(252, 249, 240, 0.68);
   font-size: 0.95rem;
   font-weight: 700;
   cursor: pointer;
@@ -1105,7 +1240,17 @@ body.symbol-open #legendToggle {
 }
 
 .zoom-btn:hover {
-  background: #ffffff;
+  background: #fcf9f0;
+  color: #0f172a;
+}
+
+.legend-toggle:focus-visible,
+.entry-popup-close:focus-visible,
+.entry-return-btn:focus-visible,
+.info-popup-action:focus-visible,
+.info-btn:focus-visible,
+.zoom-btn:focus-visible {
+  outline: none;
 }
 
 @media (max-width: 900px) {
