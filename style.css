@@ -1290,12 +1290,25 @@ body.symbol-open #legendToggle {
     min-height: 560px;
   }
 
-  .info-btn {
-    left: -16px;
+  .info-btn,
+  .entry-btn {
     width: 130px;
     padding: 8px 10px;
     font-size: 0.72rem;
-    border-radius: 0 10px 10px 0;
+    border-radius: 12px 0 0 12px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    background: linear-gradient(rgba(252, 249, 240, 0.14), rgba(252, 249, 240, 0.14)), #02121b;
+    color: rgba(252, 249, 240, 0.68);
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(2, 6, 23, 0.25);
+    border: none;
+    outline: none;
+    margin: 0;
+    position: relative;
+    right: 0;
   }
 
   .zoom-slider-wrap {
